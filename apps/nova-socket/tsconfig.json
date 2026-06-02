@@ -5,20 +5,14 @@
 		"rootDir": ".",
 		"declaration": true,
 		"declarationMap": true,
-		"types": ["node"],
-
-		/* Bundled projects */
-		"lib": ["dom", "dom.iterable", "ES2022"],
-		"noEmit": true,
-		"module": "ESNext",
-		"moduleResolution": "Bundler",
-		"jsx": "preserve",
-
 		"incremental": true,
+		"noEmit": true,
+		"lib": ["dom", "dom.iterable", "ES2022"],
+		"module": "ESNext",
 		"paths": {
 			"~/*": ["./src/*"],
 		},
 	},
-	"include": ["src"],
+	"include": ["src", "**/*.ts"],
 	"exclude": ["node_modules", "dist"],
 }

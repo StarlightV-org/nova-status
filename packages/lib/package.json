@@ -1,5 +1,5 @@
 {
-	"name": "@novastatus/env",
+	"name": "@novastatus/lib",
 	"version": "0.1.0",
 	"private": true,
 	"type": "module",
@@ -8,10 +8,13 @@
 	},
 	"exports": {
 		".": {
-			"types": "./src/env.ts",
-			"default": "./src/env.ts"
+			"types": "./src/index.ts",
+			"default": "./src/index.ts"
 		},
-		"./env": "./src/env.ts"
+		"./*": {
+			"types": "./src/*",
+			"default": "./src/*"
+		}
 	},
 	"scripts": {
 		"build": "tsc",

@@ -1,10 +1,11 @@
+import { ENV } from "@novastatus/env";
 import { type Config } from "drizzle-kit";
 
 export default {
-  schema: "./src/schema.ts",
+  schema: "./packages/db/src/schema.ts",
   dialect: "postgresql",
   dbCredentials: {
-    url: process.env.DATABASE_URL!,
+    url: ENV.DATABASE_URL!,
   },
   tablesFilter: ["nova_*"],
 } satisfies Config;

@@ -3,7 +3,8 @@
  * for Docker builds.
  */
 import type { NextConfig } from "next";
-import "~/env"
+import "@novastatus/env"
+import "@novastatus/print"
 
 
 const config: NextConfig = {};

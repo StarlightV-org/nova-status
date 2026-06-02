@@ -1,15 +1,17 @@
 {
-	"name": "@novamonitor/web",
+	"name": "@novastatus/web",
 	"version": "0.1.0",
 	"private": true,
 	"type": "module",
 	"dependencies": {
-		"@novamonitor/db": "workspace:*"
+		"@novastatus/db": "workspace:*",
+		"@novastatus/env": "workspace:*",
+		"@novastatus/print": "workspace:*"
 	},
 	"scripts": {
 		"build": "next build",
 		"check": "biome check .",
-		"dev": "next dev --turbo",
+		"dev": "bun --env-file ../../.env next dev --turbopack --experimental-https --port 3000",
 		"preview": "next build && next start",
 		"start": "next start",
 		"ts": "tsgo --noEmit"

@@ -7,12 +7,13 @@
  * need to use are documented accordingly near the end.
  */
 
+import { db } from "@novastatus/db";
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
-import { ZodError } from "zod";
-
+import z, { ZodError } from "zod";
 import { auth } from "~/server/better-auth";
-import { db } from "~/server/db";
+
+
 
 /**
  * 1. CONTEXT
@@ -32,7 +33,8 @@ export const createTRPCContext = async (opts: { headers: Headers }) => {
   });
   return {
     db,
-    session,
+    session: session?.session!,
+    user: session?.user!,
     ...opts,
   };
 };
@@ -52,7 +54,7 @@ const t = initTRPC.context<typeof createTRPCContext>().create({
       data: {
         ...shape.data,
         zodError:
-          error.cause instanceof ZodError ? error.cause.flatten() : null,
+          error.cause instanceof ZodError ? z.treeifyError(error.cause) : null,
       },
     };
   },
@@ -79,29 +81,32 @@ export const createCallerFactory = t.createCallerFactory;
  */
 export const createTRPCRouter = t.router;
 
-/**
- * Middleware for timing procedure execution and adding an artificial delay in development.
- *
- * You can remove this if you don't like it, but it can help catch unwanted waterfalls by simulating
- * network latency that would occur in production but not in local development.
- */
-const timingMiddleware = t.middleware(async ({ next, path }) => {
-  const start = Date.now();
+const timingMiddleware = t.middleware(async ({ next, path, ctx }) => {
+	const start = Date.now();
+	const result = await next();
+	const end = Date.now();
 
-  if (t._config.isDev) {
-    // artificial delay in dev
-    const waitMs = Math.floor(Math.random() * 400) + 100;
-    await new Promise((resolve) => setTimeout(resolve, waitMs));
-  }
-
-  const result = await next();
-
-  const end = Date.now();
-  console.log(`[TRPC] ${path} took ${end - start}ms to execute`);
-
-  return result;
+	Print.TRPC(path, end - start, {
+		name: ctx.user.name,
+		id: ctx.user?.id,
+		session: ctx.session?.id,
+		ok: result.ok,
+	});
+	return result;
 });
 
+const errorMiddleware = t.middleware(async ({ next, path, ctx }) => {
+	const result = await next();
+	if (!result.ok) {
+		Print.TRPCError(path, result.error, {
+			name: ctx.user?.name,
+			id: ctx.user?.id,
+			session: ctx.session?.id,
+
+		});
+	}
+	return result;
+});
 /**
  * Public (unauthenticated) procedure
  *
@@ -109,26 +114,20 @@ const timingMiddleware = t.middleware(async ({ next, path }) => {
  * guarantee that a user querying is authorized, but you can still access user session data if they
  * are logged in.
  */
-export const publicProcedure = t.procedure.use(timingMiddleware);
+export const publicProcedure = t.procedure.use(timingMiddleware).use(errorMiddleware);
 
-/**
- * Protected (authenticated) procedure
- *
- * If you want a query or mutation to ONLY be accessible to logged in users, use this. It verifies
- * the session is valid and guarantees `ctx.session.user` is not null.
- *
- * @see https://trpc.io/docs/procedures
- */
 export const protectedProcedure = t.procedure
-  .use(timingMiddleware)
-  .use(({ ctx, next }) => {
-    if (!ctx.session?.user) {
-      throw new TRPCError({ code: "UNAUTHORIZED" });
-    }
-    return next({
-      ctx: {
-        // infers the `session` as non-nullable
-        session: { ...ctx.session, user: ctx.session.user },
-      },
-    });
-  });
+	.use(timingMiddleware)
+	.use(errorMiddleware)
+	.use(({ ctx, next }) => {
+		if (!ctx.session || !ctx.user.id) {
+			throw new TRPCError({ code: "FORBIDDEN", message: "Unauthorized" });
+		}
+
+
+		return next({
+			ctx: {
+				session: { ...ctx.session, user: ctx.user },
+			},
+		});
+	});

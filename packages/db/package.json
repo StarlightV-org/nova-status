@@ -1,8 +1,14 @@
 {
-	"name": "@novamonitor/db",
+	"name": "@novastatus/db",
 	"version": "0.1.0",
 	"private": true,
 	"type": "module",
+	"dependencies": {
+		"@novastatus/lib": "workspace:*",
+		"@novastatus/db": "workspace:*",
+		"@novastatus/env": "workspace:*",
+		"@novastatus/print": "workspace:*"
+	},
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",

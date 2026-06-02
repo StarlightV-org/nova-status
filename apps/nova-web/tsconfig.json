@@ -5,24 +5,15 @@
 		"jsx": "preserve",
 		"plugins": [
 			{
-				"name": "next"
-			}
+				"name": "next",
+			},
 		],
 		"incremental": true,
-		"baseUrl": ".",
+
 		"paths": {
 			"~/*": ["./src/*"],
-			"~/schema": ["../../packages/db/src/schema.ts"],
-			"~/env": ["../../packages/env/src/env.ts"]
-		}
+		},
 	},
-	"include": [
-		"next-env.d.ts",
-		"**/*.ts",
-		"**/*.tsx",
-		"**/*.cjs",
-		"**/*.js",
-		".next/types/**/*.ts"
-	],
-	"exclude": ["node_modules", "generated"]
+	"include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "**/*.cjs", "**/*.js", ".next/types/**/*.ts"],
+	"exclude": ["node_modules", "generated"],
 }

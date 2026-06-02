@@ -1,6 +1,6 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
-import { io } from "~/server";
+import { io } from "~/socket";
 
 export const getOnlineUsers = async (req: FastifyRequest, res: FastifyReply) => {
 	const clients = await io.fetchSockets();

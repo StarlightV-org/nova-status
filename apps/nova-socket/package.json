@@ -10,7 +10,7 @@
 		"@novastatus/lib": "workspace:*"
 	},
 	"scripts": {
-		"dev": "bun --env-file ../../.env --watch src/server.ts",
+		"dev": "bun --watch --env-file ../../.env  src/index.ts",
 		"ts": "tsgo --noEmit"
 	},
 	"ct3aMetadata": {

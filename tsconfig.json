@@ -1,8 +1,14 @@
 {
-	"files": [],
-	"references": [
-		{
-			"path": "./apps/nova-web"
-		}
-	]
+  "files": [],
+  "references": [
+    {
+      "path": "./apps/nova-web",
+    },
+    {
+      "path": "./packages/db",
+    },
+    {
+      "path": "./packages/env",
+    },
+  ],
 }

@@ -1,9 +1,13 @@
 import "~/styles/globals.css";
 
-import { type Metadata } from "next";
-import { Geist } from "next/font/google";
+import type { Metadata } from "next";
+import {Nunito, Nunito_Sans } from "next/font/google";
 
 import { TRPCReactProvider } from "~/trpc/react";
+import { cn } from "~/lib/utils";
+import { HydrateClient } from "~/trpc/server";
+
+const nunitoSans = Nunito_Sans({subsets:['latin'],variable:'--font-sans'});
 
 export const metadata: Metadata = {
   title: "Create T3 App",
@@ -11,18 +15,28 @@ export const metadata: Metadata = {
   icons: [{ rel: "icon", url: "/favicon.ico" }],
 };
 
-const geist = Geist({
-  subsets: ["latin"],
-  variable: "--font-geist-sans",
+
+const nunito = Nunito({
+	subsets: ["latin"],
+	variable: "--font-nunito",
+	weight: ["400", "500", "600", "700"],
+	style: ["normal", "italic"],
 });
 
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${geist.variable}`}>
+    <html lang="en" 	className={cn("dark", nunito.variable, "font-sans", nunitoSans.variable)}>
+     	<head>
+				<meta name="darkreader-lock" />
+			</head>
       <body>
-        <TRPCReactProvider>{children}</TRPCReactProvider>
+        <TRPCReactProvider>
+          <HydrateClient>
+            {children}
+          </HydrateClient>
+        </TRPCReactProvider>
       </body>
     </html>
   );

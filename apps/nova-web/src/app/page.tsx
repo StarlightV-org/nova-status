@@ -6,8 +6,10 @@ export default async function Home() {
 
 
   return (
-    <HydrateClient>
+    <>
+
      TST
-    </HydrateClient>
+  </>
+
   );
 }

@@ -24,6 +24,7 @@ export const ENV = createEnv({
   clientPrefix: "NEXT_PUBLIC_",
 
   client: {
+    NEXT_PUBLIC_BETTER_AUTH_URL: z.url(),
 
   },
 
@@ -38,6 +39,7 @@ export const ENV = createEnv({
     // BETTER AUTH
     BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
     BETTER_AUTH_URL: process.env.BETTER_AUTH_URL,
+    NEXT_PUBLIC_BETTER_AUTH_URL: process.env.NEXT_PUBLIC_BETTER_AUTH_URL,
     BETTER_AUTH_GITHUB_CLIENT_ID: process.env.BETTER_AUTH_GITHUB_CLIENT_ID,
     BETTER_AUTH_GITHUB_CLIENT_SECRET: process.env.BETTER_AUTH_GITHUB_CLIENT_SECRET,
 

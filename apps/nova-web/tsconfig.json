@@ -14,6 +14,14 @@
 			"~/*": ["./src/*"],
 		},
 	},
-	"include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "**/*.cjs", "**/*.js", ".next/types/**/*.ts"],
+	"include": [
+		"next-env.d.ts",
+		"**/*.ts",
+		"**/*.tsx",
+		"**/*.cjs",
+		"**/*.js",
+		".next/types/**/*.ts",
+		"postcss.config.mjs",
+	],
 	"exclude": ["node_modules", "generated"],
 }

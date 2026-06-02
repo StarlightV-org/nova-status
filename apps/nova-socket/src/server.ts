@@ -120,20 +120,18 @@ fastify.ready(() => {
 });
 
 // Define allowed origins based on environment
-const allowedOrigins = [ENV.BETTER_AUTH_URL].filter((origin) => origin !== null);
+const devOrigins =
+	ENV.NODE_ENV === "development"
+		? ["http://localhost:3000", "https://localhost:3000"]
+		: [];
+
+const allowedOrigins = [ENV.BETTER_AUTH_URL, ...devOrigins].filter(
+	(origin) => origin !== null,
+);
 
 
 
-// Function to check if origin matches *.control.starlightv.de pattern
-const isAllowedControlDomain = (origin: string): boolean => {
-	try {
-		const url = new URL(origin);
-		const hostname = url.hostname;
-		return hostname.endsWith(".control.starlightv.de") || hostname === "control.starlightv.de";
-	} catch {
-		return false;
-	}
-};
+
 
 export const io = new Server<
 	any,
@@ -153,10 +151,7 @@ export const io = new Server<
 				return callback(null, true);
 			}
 
-			// Check if origin matches *.control.starlightv.de pattern
-			if (isAllowedControlDomain(origin)) {
-				return callback(null, true);
-			}
+
 
 			// Origin not allowed
 			return callback(new Error("Not allowed by CORS"), false);

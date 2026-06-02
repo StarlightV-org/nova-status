@@ -4,7 +4,10 @@ import * as t from "drizzle-orm/pg-core";
 import type { Config } from "better-auth";
 // @ts-ignore
 import { generateShortId } from "@novastatus/lib";
-import { MONITOR_TYPES_LIST } from "@novastatus/lib/monitorTypes.ts";
+import { MONITOR_SCHEMA, MONITOR_TYPES_LIST } from "@novastatus/lib/monitorTypes.ts";
+import z from "zod";
+
+
 
 export const novaTable = t.pgTableCreator((name) => `nova_${name}`);
 
@@ -140,10 +143,14 @@ export const verifications = novaTable("verifications", {
 // MONITORS
 
 
+export type MonitorDB = typeof monitors.$inferSelect;
+
 export const monitors = novaTable("monitors", {
   id: t.text("id").primaryKey().$defaultFn(() => generateShortId(16)),
 	lable: t.text("label").notNull(),
 
-	type: t.varchar("type", { enum: MONITOR_TYPES_LIST }).notNull(),
+  type: t.varchar("type", { enum: MONITOR_TYPES_LIST }).notNull(),
+  data: t.json().notNull().default({}),
+  interval: t.integer("interval").notNull().default(60),
 
 });

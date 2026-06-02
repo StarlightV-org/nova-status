@@ -11,7 +11,7 @@ import { db } from "@novastatus/db";
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import z, { ZodError } from "zod";
-import { auth } from "~/server/better-auth";
+import { auth, getAuth } from "~/lib/auth";
 
 
 
@@ -28,13 +28,11 @@ import { auth } from "~/server/better-auth";
  * @see https://trpc.io/docs/server/context
  */
 export const createTRPCContext = async (opts: { headers: Headers }) => {
-  const session = await auth.api.getSession({
-    headers: opts.headers,
-  });
+  const { session, user   } = await getAuth()
   return {
     db,
-    session: session?.session!,
-    user: session?.user!,
+    session,
+    user,
     ...opts,
   };
 };

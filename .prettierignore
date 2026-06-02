@@ -1,0 +1,7 @@
+.github/
+.cursor/
+
+.vscode/
+node_modules/
+bunScripts/seed/
+yaak/

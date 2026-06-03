@@ -1,5 +1,4 @@
 "use client";
-import { ENV } from "@novastatus/env";
 import { createContext, useContext, useEffect, useState } from "react";
 import { io } from "socket.io-client";
 
@@ -15,14 +14,14 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 	const [socket, setSocket] = useState<ReturnType<typeof io> | null>(null);
 
 	useEffect(() => {
-		Print.Debug("🚀 ~ SocketProvider ~ ENV.NEXT_PUBLIC_SOCKET_URL:", ENV.NEXT_PUBLIC_BETTER_AUTH_URL);
-		const socketInstance = io("http://localhost:3001", {
+		const socketInstance = io({
+			path: "/socket.io",
+			addTrailingSlash: false,
 			autoConnect: true,
 			reconnection: true,
 			reconnectionAttempts: 5,
 			reconnectionDelay: 1000,
-      withCredentials: true,
-
+			withCredentials: true,
 		});
 
 		setSocket(socketInstance);

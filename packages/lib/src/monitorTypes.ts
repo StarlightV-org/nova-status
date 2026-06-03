@@ -1,4 +1,7 @@
+import type { MonitorStatusDB } from "@novastatus/db/schema";
+
 export const MONITOR_TYPES = {
+  MISC: ["GROUP"],
 	STANDARD: [
 		"HTTP",
 		"HTTP+keyword",
@@ -14,6 +17,7 @@ export type MonitorCategory = keyof typeof MONITOR_TYPES;
 export type MonitorType = (typeof MONITOR_TYPES)[MonitorCategory][number];
 
 export const MONITOR_TYPES_LIST = [
+	...MONITOR_TYPES.MISC,
 	...MONITOR_TYPES.STANDARD,
 	...MONITOR_TYPES.DATABASE,
 ] as const satisfies readonly MonitorType[];
@@ -21,6 +25,9 @@ export const MONITOR_TYPES_LIST = [
 import { z } from "zod";
 
 export const MONITOR_SCHEMA = {
+  GROUP: z.object({
+    parrentId: z.string().min(1),
+  }),
 	// Standard monitors
 	HTTP: z.object({
 		url: z.url(),
@@ -102,3 +109,30 @@ export const MONITOR_SCHEMA = {
 } as const satisfies Record<MonitorType, z.ZodSchema>;
 
 export type MonitorSchema = typeof MONITOR_SCHEMA;
+
+// Infer output types from zod schemas
+type InferSchemaOutput<T extends z.ZodSchema> = z.infer<T>;
+
+// Map each monitor type to its data type
+export type MonitorDataMap = {
+  [K in MonitorType]: K extends keyof typeof MONITOR_SCHEMA
+    ? InferSchemaOutput<(typeof MONITOR_SCHEMA)[K]>
+    : never;
+};
+
+// Discriminated union for monitor entries
+type MonitorEntryBase = {
+  label: string;
+  interval: number;
+  states: Array<MonitorStatusDB>;
+};
+
+export type MonitorEntry<TType extends MonitorType = MonitorType> = MonitorEntryBase & {
+  type: TType;
+  data: MonitorDataMap[TType];
+};
+
+// Union of all possible monitor entries - discriminated by the "type" field
+export type MonitorStateEntry = {
+  [K in MonitorType]: MonitorEntry<K>;
+}[MonitorType];

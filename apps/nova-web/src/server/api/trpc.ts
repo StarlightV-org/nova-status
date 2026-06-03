@@ -112,7 +112,7 @@ const errorMiddleware = t.middleware(async ({ next, path, ctx }) => {
  * guarantee that a user querying is authorized, but you can still access user session data if they
  * are logged in.
  */
-export const publicProcedure = t.procedure.use(timingMiddleware).use(errorMiddleware);
+export const publicProcedure = t.procedure
 
 export const protectedProcedure = t.procedure
 	.use(timingMiddleware)

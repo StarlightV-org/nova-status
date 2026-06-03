@@ -4,13 +4,16 @@ import { auth } from "~/server";
 export async function getSession(
 	socket: Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any>,
 ) {
-	const headers = socket.request.headers;
+  const headers = socket.request.headers;
+
 
 	const session = await auth.api.getSession({
 		headers: new Headers({
 			cookie: headers.cookie ?? "none",
 		}),
-	});
+  });
+
+	Print.Debug(session?.user.id);
 
 	return session;
 }

@@ -13,52 +13,60 @@ import { generateShortId } from "@novastatus/lib";
 
 // Create auth instance for websocket server
 export const auth = betterAuth({
+  baseURL: ENV.BETTER_AUTH_URL,
 	secret: ENV.BETTER_AUTH_SECRET,
-	baseURL: ENV.BETTER_AUTH_URL,
+   trustedOrigins: [ENV.BETTER_AUTH_URL],
+	appName: "StarlightV",
+
 	database: drizzleAdapter(db, {
 		provider: "pg",
-		schema: {
-			...schema,
-			users: schema.users,
-			accounts: schema.accounts,
-			sessions: schema.sessions,
-			verifications: schema.verifications,
-		},
 		usePlural: true,
 	}),
-	user: {
-		additionalFields: {
-			admin: {
-				type: "boolean",
-			},
-			banner: {
-				type: "string",
-			},
-			fivemLicense: {
-				type: "string",
-			},
-			discordId: {
-				type: "string",
-			},
-		},
-	},
+
+
+
 	advanced: {
-		database: {
-			generateId(options) {
-				return generateShortId(options.size);
-			},
-		},
 		ipAddress: {
 			ipAddressHeaders: ["x-forwarded-for"],
 		},
-		crossSubDomainCookies: {
-			domain: "starlightv.de",
-			enabled: ENV.NODE_ENV !== "development",
-			additionalCookies: ["webauthn_challenge"],
-		},
 
-		cookiePrefix: "control-starlightv",
+		useSecureCookies: true,
+		cookiePrefix: "nova-status",
 	},
+
+	onAPIError: {
+		throw: false,
+	},
+
+
+
+	user: {
+		additionalFields: {
+
+			admin: {
+				type: "boolean",
+				input: false,
+				default: false,
+			},
+			permissions: {
+				type: "json",
+				items: {
+					type: "string",
+				},
+				input: false,
+			},
+			accountInactive: {
+				type: "boolean",
+				default: false,
+			},
+			accountLocked: {
+				type: "boolean",
+				default: false,
+			},
+
+		},
+	},
+
 });
 
 const envToLogger = {
@@ -82,6 +90,10 @@ export const fastify = Fastify({
 
 await fastify.register(fastifyExpress);
 fastify.use((req: FastifyRequest, res: FastifyReply, next: () => void) => {
+	if (req.url?.startsWith("/socket.io")) {
+		return next();
+	}
+
 	const apiKey = req.headers.authorization?.replaceAll("Bearer ", "");
 
 	if (!apiKey) {

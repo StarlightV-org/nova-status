@@ -6,6 +6,9 @@ import {Nunito, Nunito_Sans } from "next/font/google";
 import { TRPCReactProvider } from "~/trpc/react";
 import { cn } from "~/lib/utils";
 import { HydrateClient } from "~/trpc/server";
+import { TooltipProvider } from "~/components/ui/tooltip";
+import { getAuth } from "~/lib/auth";
+import { SessionProvider } from "~/provider/session-provider";
 
 const nunitoSans = Nunito_Sans({subsets:['latin'],variable:'--font-sans'});
 
@@ -23,20 +26,23 @@ const nunito = Nunito({
 	style: ["normal", "italic"],
 });
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const session = await getAuth()
   return (
     <html lang="en" 	className={cn("dark", nunito.variable, "font-sans", nunitoSans.variable)}>
      	<head>
 				<meta name="darkreader-lock" />
 			</head>
       <body>
+        <SessionProvider initialSession={session}>
         <TRPCReactProvider>
           <HydrateClient>
-            {children}
+            <TooltipProvider>{children}</TooltipProvider>
           </HydrateClient>
-        </TRPCReactProvider>
+          </TRPCReactProvider>
+        </SessionProvider>
       </body>
     </html>
   );

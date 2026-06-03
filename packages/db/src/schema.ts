@@ -147,10 +147,34 @@ export type MonitorDB = typeof monitors.$inferSelect;
 
 export const monitors = novaTable("monitors", {
   id: t.text("id").primaryKey().$defaultFn(() => generateShortId(16)),
-	lable: t.text("label").notNull(),
+  label: t.text("label").notNull(),
 
   type: t.varchar("type", { enum: MONITOR_TYPES_LIST }).notNull(),
   data: t.json().notNull().default({}),
   interval: t.integer("interval").notNull().default(60),
 
 });
+
+export type MonitorStatusDB = typeof monitorStatus.$inferSelect;
+
+export const monitorStatus = novaTable("monitor_status", {
+  id: t.text("id").primaryKey().$defaultFn(() => generateShortId(16)),
+  monitorId: t.text("monitor_id").notNull().references(() => monitors.id, { onDelete: "cascade" }),
+  status: t.varchar("status", { enum: ["up", "down", "degraded", "pending"] }).notNull(),
+  responseTime: t.integer("response_time"),
+  message: t.text("message"),
+  checkedAt: t.timestamp("checked_at").notNull(),
+});
+
+
+
+export const monitorRelation = relations(monitors, ({ many }) => ({
+  status: many(monitorStatus),
+}));
+
+export const monitorStatusRelation = relations(monitorStatus, ({ one }) => ({
+  monitor: one(monitors, {
+    fields: [monitorStatus.monitorId],
+    references: [monitors.id],
+  }),
+}));

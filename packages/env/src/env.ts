@@ -24,7 +24,7 @@ export const ENV = createEnv({
   clientPrefix: "NEXT_PUBLIC_",
 
   client: {
-    NEXT_PUBLIC_BETTER_AUTH_URL: z.url(),
+    NEXT_PUBLIC_BETTER_AUTH_URL: z.string(),
 
   },
 

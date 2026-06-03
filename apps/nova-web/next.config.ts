@@ -36,20 +36,28 @@ const config: NextConfig = {
 	env: {
 		NEXT_PUBLIC_BUILD_TIME: new Date().toISOString(),
 	},
-	rewrites: async () => [
-		{
-			source: "/ws/:path*",
-			destination: "http://127.0.0.1:3001/:path*",
-		},
-		{
-			source: "/ws",
-			destination: "http://127.0.0.1:3001",
-		},
-		{
-			source: "/socket.io/:path*",
-			destination: "http://127.0.0.1:3001/socket.io/:path*",
-		},
-	],
+	rewrites: async () => ({
+		beforeFiles: [
+			{
+				source: "/socket.io",
+				destination: "http://localhost:3001/socket.io/",
+			},
+			{
+				source: "/socket.io/:path*",
+				destination: "http://localhost:3001/socket.io/:path*",
+			},
+		],
+		afterFiles: [
+			{
+				source: "/ws/:path*",
+				destination: "http://localhost:3001/:path*",
+			},
+			{
+				source: "/ws",
+				destination: "http://localhost:3001",
+			},
+		],
+	}),
 };
 
 export default config;

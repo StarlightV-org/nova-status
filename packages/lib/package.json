@@ -4,7 +4,8 @@
 	"private": true,
 	"type": "module",
 	"dependencies": {
-		"@novastatus/print": "workspace:*"
+		"@novastatus/print": "workspace:*",
+		"@novastatus/db": "workspace:*"
 	},
 	"exports": {
 		".": {

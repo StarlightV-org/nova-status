@@ -2,16 +2,24 @@ import { z } from "zod";
 
 import {
   createTRPCRouter,
-  protectedProcedure,
   publicProcedure,
 } from "~/server/api/trpc";
 
 export const monitorRouter = createTRPCRouter({
   get: publicProcedure
-    .input(z.object({  }))
+    // .input(z.object({  }))
     .query(async ({ ctx }) => {
 
-      return ctx.db.query.monitors.findMany()
+      const monitors = await ctx.db.query.monitors.findMany({
+        with: {
+          status: {
+            orderBy: (status, { desc }) => [desc(status.checkedAt)],
+            limit: 5,
+          }
+        },
+      })
+      Print.Debug(monitors)
+      return monitors
 
     }),
 });

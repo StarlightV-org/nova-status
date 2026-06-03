@@ -13,7 +13,7 @@ import { ENV } from "@novastatus/env";
 export const auth = betterAuth({
 	baseURL: ENV.BETTER_AUTH_URL,
 	secret: ENV.BETTER_AUTH_SECRET,
-	trustedOrigins: [ENV.BETTER_AUTH_URL, "https://*.control.starlightv.de"],
+  trustedOrigins: [ENV.BETTER_AUTH_URL],
 	appName: "StarlightV",
 
 	database: drizzleAdapter(db, {
@@ -24,14 +24,18 @@ export const auth = betterAuth({
 
 
 	advanced: {
-		database: {
+		// database: {
 
-		},
+		// },
 		ipAddress: {
 			ipAddressHeaders: ["x-forwarded-for"],
 		},
 
-		useSecureCookies: true,
+    useSecureCookies: true,
+    crossSubDomainCookies: {
+      enabled: false,
+
+    },
 		cookiePrefix: "nova-status",
 	},
 
@@ -71,6 +75,7 @@ export const auth = betterAuth({
 	socialProviders: {
     // /api/auth/callback/github
     github: {
+
       clientId: ENV.BETTER_AUTH_GITHUB_CLIENT_ID,
       clientSecret: ENV.BETTER_AUTH_GITHUB_CLIENT_SECRET,
       prompt: "consent",
@@ -78,17 +83,17 @@ export const auth = betterAuth({
     },
   },
 	plugins: [
-		passkey({
-			origin: ENV.BETTER_AUTH_URL,
-			rpID: ENV.NODE_ENV === "development" ? "localhost" : new URL(ENV.BETTER_AUTH_URL).hostname,
-			rpName: "StarlightV",
-			authenticatorSelection: {
-				userVerification: "required",
-			},
-			advanced: {
-				webAuthnChallengeCookie: "control-starlightv-webauthn_challenge",
-			},
-		}),
+		// passkey({
+		// 	origin: ENV.BETTER_AUTH_URL,
+		// 	rpID: ENV.NODE_ENV === "development" ? "localhost" : new URL(ENV.BETTER_AUTH_URL).hostname,
+		// 	rpName: "StarlightV",
+		// 	authenticatorSelection: {
+		// 		userVerification: "required",
+		// 	},
+		// 	advanced: {
+		// 		webAuthnChallengeCookie: "control-starlightv-webauthn_challenge",
+		// 	},
+		// }),
 
 	],
 });

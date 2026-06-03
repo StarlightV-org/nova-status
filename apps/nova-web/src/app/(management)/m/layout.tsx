@@ -1,17 +1,14 @@
 import { tryCatch } from "@novastatus/lib"
 import type { MonitorStateEntry } from "@novastatus/lib/monitorTypes.js"
-import { AppSidebar } from "~/components/app-sidebar"
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "~/components/ui/sidebar"
+
 import { MonitorStateProvider, type MonitorState } from "~/provider/monitor-state"
 import { SocketProvider } from "~/provider/web-socket"
 import { api } from "~/trpc/server"
+import { MonitorCard } from "./status-components"
 
 export default async function MonitorLayout({ children }: { children: React.ReactNode }) {
   const monitors = await tryCatch(api.monitor.get())
+  Print.Debug(monitors.error);
 
   const monitorState: MonitorState = (monitors.data ?? []).reduce<MonitorState>(
     (acc, monitor) => {
@@ -21,29 +18,40 @@ export default async function MonitorLayout({ children }: { children: React.Reac
         data: monitor.data,
         interval: monitor.interval,
         states: monitor.status,
+        uptime: monitor.uptime,
+        groupId: monitor.groupId,
       } as MonitorStateEntry
       return acc
     },
     {},
   )
 
+  // all monitors with type GROUP
+  const monitorGroups = monitors.data?.filter((monitor) => monitor.type === "GROUP")
+  const allMonitorsWithGroupId = monitors.data?.filter((monitor) => monitor.groupId !== null || monitor.groupId !== undefined)
+
 
   return (
     <SocketProvider>
       <MonitorStateProvider initialState={monitorState}>
-        <SidebarProvider
-          style={{ "--sidebar-width": "20%" } as React.CSSProperties}
-        >
-          <AppSidebar collapsible="none" />
-          <SidebarInset>
-            <header className="sticky top-0 flex h-16 shrink-0 items-center gap-2 border-b bg-background px-4">
-              <SidebarTrigger className="-ml-1" />
-            </header>
-            <div className="flex flex-1 flex-col gap-4 p-4 overflow-auto">
-              {children}
-            </div>
-          </SidebarInset>
-        </SidebarProvider>
+        <div className="gap-4 grid grid-cols-10">
+          <div className="col-span-3 max-h-svh  bg-accent overflow-auto">
+            {monitorGroups?.map((group) => (
+              <div key={group.id}>
+                <h2>{group.label}</h2>
+                {allMonitorsWithGroupId?.filter((monitor) => monitor.groupId === group.id)?.map((monitor) => (
+                  <div key={monitor.id}>
+                    <MonitorCard monitorId={monitor.id} />
+                  </div>
+                ))}
+              </div>
+            ))}
+
+
+
+          </div>
+          <div className="col-span-7 max-h-svh overflow-auto">{children}</div>
+        </div>
       </MonitorStateProvider>
     </SocketProvider>
   )

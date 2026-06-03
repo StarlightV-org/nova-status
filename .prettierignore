@@ -1,7 +1,7 @@
-# .github/
-# .cursor/
-
-# .vscode/
-# node_modules/
-# bunScripts/seed/
-# yaak/
+.github/
+.cursor/
+.next/
+.vscode/
+node_modules/
+bunScripts/seed/
+yaak/

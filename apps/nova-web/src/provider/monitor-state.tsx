@@ -19,7 +19,7 @@ type MonitorSocketUpdate = {
 const MonitorStateContext = createContext<MonitorState>({});
 
 export function useMonitorState() {
-	return useContext(MonitorStateContext);
+  return useContext(MonitorStateContext);
 }
 
 function applyMonitorUpdates(
@@ -56,6 +56,8 @@ export function MonitorStateProvider({ children, initialState }: { children: Rea
   const [state, setState] = useState<MonitorState>(initialState);
   const socket = useSocket();
 
+
+
   useEffect(() => {
     if (!socket) return;
 
@@ -86,5 +88,5 @@ export function MonitorStateProvider({ children, initialState }: { children: Rea
     };
   }, [socket]);
 
-	return <MonitorStateContext.Provider value={state}>{children}</MonitorStateContext.Provider>;
+  return <MonitorStateContext.Provider value={state}>{children}</MonitorStateContext.Provider>;
 }

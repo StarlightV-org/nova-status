@@ -1,51 +1,28 @@
 "use client";
 
 import type { MonitorStatusDB } from "@novastatus/db/schema";
-import { motion } from "motion/react";
-import { useId, useMemo } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip";
 import { cn } from "~/lib/utils";
 
-type TimelineSlot =
-	| { kind: "empty"; key: string }
-	| {
-			kind: "status";
-			key: string;
-			status: MonitorStatusDB["status"];
-			checkedAt: Date;
-			responseTime: number | null;
-	  };
+type Beat = MonitorStatusDB | null;
 
-function buildTimelineSlots(states: MonitorStatusDB[], limit: number, timelineId: string): TimelineSlot[] {
-	const recent = states.slice(0, limit);
-	const chronological = [...recent].reverse();
-	const emptyCount = limit - chronological.length;
+const BEAT_W = 6;
+const BEAT_H = 24;
+const BEAT_GAP = 3;
+const BEAT_STEP = BEAT_W + BEAT_GAP;
+const HOVER_SCALE = 1.5;
+const SLIDE_MS = 250;
+const EMPTY = "#52525b80";
 
-	const emptySlots: TimelineSlot[] = Array.from({ length: emptyCount }, (_, i) => ({
-		kind: "empty",
-		key: `${timelineId}-ph-${i}`,
-	}));
+const COLORS = {
+	up: "#10b981",
+	down: "#ef4444",
+	pending: "#f97316",
+	maintenance: "#3b82f6",
+} as const;
 
-	const statusSlots: TimelineSlot[] = chronological.map((entry) => ({
-		kind: "status",
-		key: entry.id,
-		status: entry.status,
-		checkedAt: entry.checkedAt,
-		responseTime: entry.responseTime,
-	}));
-
-	return [...emptySlots, ...statusSlots];
-}
-
-const statusPillClasses: Record<MonitorStatusDB["status"], string> = {
-	up: "bg-emerald-500",
-	down: "bg-red-500",
-	pending: "bg-orange-500",
-	maintenance: "bg-blue-500",
-};
-
-function formatCheckedAt(date: Date): string {
+function formatTime(date: Date) {
 	return new Intl.DateTimeFormat(undefined, {
 		month: "short",
 		day: "numeric",
@@ -55,86 +32,176 @@ function formatCheckedAt(date: Date): string {
 	}).format(date);
 }
 
-const layoutTransition = {
-	type: "spring" as const,
-	stiffness: 500,
-	damping: 35,
-};
-
-function pillClassName(slot: TimelineSlot) {
-	return cn(
-		"h-6 w-1.5 shrink-0 rounded-full",
-		slot.kind === "empty" ? "bg-zinc-600/50" : statusPillClasses[slot.status],
-	);
+function beatColor(status: MonitorStatusDB["status"]) {
+	return COLORS[status];
 }
 
-function StatusPill({ slot }: { slot: TimelineSlot }) {
-	const motionProps = {
-		layout: "position" as const,
-		initial: false,
-		transition: { layout: layoutTransition },
-		className: "inline-flex shrink-0",
-	};
+function buildBeats(states: MonitorStatusDB[], max: number, move: boolean): Beat[] {
+	const oldestFirst = [...states].reverse();
+	let start = oldestFirst.length - max;
+	if (move) start -= 1;
 
-	if (slot.kind === "empty") {
-		return (
-			<motion.div {...motionProps} aria-hidden>
-				<div className={pillClassName(slot)} />
-			</motion.div>
-		);
+	const pad: Beat[] = [];
+	if (start < 0) {
+		for (let i = start; i < 0; i++) pad.push(null);
+		start = 0;
 	}
 
-	const responseLabel = slot.responseTime != null ? `${slot.responseTime}ms` : "—";
+	return pad.concat(oldestFirst.slice(start));
+}
 
-	return (
-		<Tooltip>
-			<TooltipTrigger asChild>
-				<motion.button
-					{...motionProps}
-					type="button"
-					className={cn(
-						motionProps.className,
-						"cursor-default rounded-full focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
-					)}
-				>
-					<div className={pillClassName(slot)} />
-				</motion.button>
-			</TooltipTrigger>
-			<TooltipContent side="top" className="capitalize">
-				{slot.status} · {responseLabel} · {formatCheckedAt(slot.checkedAt)}
-			</TooltipContent>
-		</Tooltip>
-	);
+function drawBeat(ctx: CanvasRenderingContext2D, x: number, centerY: number, beat: Beat | undefined, hovered: boolean) {
+	let w = BEAT_W;
+	let h = BEAT_H;
+	let ox = x;
+	let oy = centerY - h / 2;
+
+	if (hovered && beat) {
+		w *= HOVER_SCALE;
+		h *= HOVER_SCALE;
+		ox = x - (w - BEAT_W) / 2;
+		oy = centerY - h / 2;
+	}
+
+	ctx.fillStyle = beat ? beatColor(beat.status) : EMPTY;
+	ctx.beginPath();
+	ctx.roundRect(ox, oy, w, h, w / 2);
+	ctx.fill();
 }
 
 export function StatusTimeline({
 	states,
-	limit = 30,
-	timelineId: timelineIdProp,
+	limit = 40,
 	className,
 }: {
 	states: MonitorStatusDB[];
 	limit?: number;
-	timelineId?: string;
 	className?: string;
 }) {
-	const autoId = useId();
-	const timelineId = timelineIdProp ?? autoId;
+	const wrapRef = useRef<HTMLDivElement>(null);
+	const canvasRef = useRef<HTMLCanvasElement>(null);
+	const prevLen = useRef(states.length);
 
-	const slots = useMemo(() => buildTimelineSlots(states, limit, timelineId), [states, limit, timelineId]);
-	const filledCount = Math.min(states.length, limit);
+	const [fitBeat, setFitBeat] = useState(1);
+	const [move, setMove] = useState(false);
+	const [hover, setHover] = useState(-1);
+	const [tip, setTip] = useState<{ beat: MonitorStatusDB; x: number; y: number } | null>(null);
+
+	const maxBeat = limit ?? fitBeat;
+	const beats = useMemo(() => buildBeats(states, maxBeat, move), [states, maxBeat, move]);
+	const sliding = move && beats.length > maxBeat;
+	const canvasW = beats.length * BEAT_STEP;
+	const canvasH = BEAT_H * HOVER_SCALE;
+	const padY = (canvasH - BEAT_H) / 2;
+	const viewW = maxBeat * BEAT_STEP;
+
+	useLayoutEffect(() => {
+		if (limit != null) return;
+
+		const el = wrapRef.current;
+		if (!el) return;
+
+		const update = () => setFitBeat(Math.max(1, Math.floor(el.clientWidth / BEAT_STEP)));
+		update();
+
+		const ro = new ResizeObserver(update);
+		ro.observe(el);
+		return () => ro.disconnect();
+	}, [limit]);
+
+	useEffect(() => {
+		if (states.length === prevLen.current) return;
+		prevLen.current = states.length;
+		setMove(true);
+		const t = window.setTimeout(() => setMove(false), SLIDE_MS);
+		return () => window.clearTimeout(t);
+	}, [states.length]);
+
+	useLayoutEffect(() => {
+		const canvas = canvasRef.current;
+		if (!canvas) return;
+
+		const ctx = canvas.getContext("2d");
+		if (!ctx) return;
+
+		const dpr = window.devicePixelRatio || 1;
+		canvas.width = canvasW * dpr;
+		canvas.height = canvasH * dpr;
+		canvas.style.width = `${canvasW}px`;
+		canvas.style.height = `${canvasH}px`;
+		ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+		ctx.clearRect(0, 0, canvasW, canvasH);
+
+		const centerY = canvasH / 2;
+		for (let i = 0; i < beats.length; i++) {
+			const x = i * BEAT_STEP + BEAT_GAP / 2;
+			drawBeat(ctx, x, centerY, beats[i], i === hover);
+		}
+	}, [beats, canvasW, canvasH, hover]);
+
+	const onMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+		const canvas = canvasRef.current;
+		const bar = canvas?.parentElement;
+		if (!canvas || !bar) return;
+
+		const barRect = bar.getBoundingClientRect();
+		const x = e.clientX - barRect.left;
+		const i = Math.floor(x / BEAT_STEP);
+		const beat = beats[i];
+
+		if (!beat || i < 0 || i >= beats.length) {
+			setHover(-1);
+			setTip(null);
+			return;
+		}
+
+		if (hover !== i) setHover(i);
+
+		const canvasRect = canvas.getBoundingClientRect();
+		setTip({
+			beat,
+			x: canvasRect.left + i * BEAT_STEP + BEAT_STEP / 2,
+			y: canvasRect.top + padY,
+		});
+	};
 
 	return (
-		<TooltipProvider delayDuration={200}>
+		<>
 			<div
-				className={cn("flex items-center gap-0.75", className)}
-				role="img"
-				aria-label={`Monitor status history, ${filledCount} of ${limit} checks`}
+				ref={wrapRef}
+				className={cn(limit != null ? "shrink-0" : "min-w-0 flex-1", "overflow-hidden", className)}
+				style={{ width: viewW, paddingBlock: padY }}
 			>
-				{slots.map((slot) => (
-					<StatusPill key={slot.key} slot={slot} />
-				))}
+				<div
+					className="will-change-transform"
+					style={{
+						transform: sliding ? `translateX(${-BEAT_STEP}px)` : undefined,
+						transition: sliding ? `transform ${SLIDE_MS}ms ease-in-out` : undefined,
+					}}
+				>
+					<canvas
+						ref={canvasRef}
+						className="block cursor-default"
+						role="img"
+						aria-label={`Monitor status history, ${Math.min(states.length, maxBeat)} checks`}
+						onMouseMove={onMouseMove}
+						onMouseLeave={() => {
+							setHover(-1);
+							setTip(null);
+						}}
+					/>
+				</div>
 			</div>
-		</TooltipProvider>
+
+			{tip && (
+				<div
+					className="pointer-events-none fixed z-50 -translate-x-1/2 -translate-y-full rounded-md bg-card px-3 py-1.5 text-xs text-background capitalize shadow-md"
+					style={{ left: tip.x, top: tip.y - 8 }}
+				>
+					{tip.beat.status} · {tip.beat.responseTime != null ? `${tip.beat.responseTime}ms` : "—"} ·{" "}
+					{formatTime(tip.beat.checkedAt)}
+				</div>
+			)}
+		</>
 	);
 }

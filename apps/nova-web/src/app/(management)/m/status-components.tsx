@@ -32,7 +32,7 @@ export function MonitorCard({ monitorId }: { monitorId: string }) {
 					<UptimeBadge percent={data.uptime.total} />
 					<p>{data.label}</p>
 				</div>
-				<StatusTimeline states={data.states} timelineId={monitorId} className="self-end!" />
+				<StatusTimeline states={data.states} />
 			</div>
 		</Card>
 	);

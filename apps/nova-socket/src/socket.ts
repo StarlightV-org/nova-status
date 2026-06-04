@@ -4,14 +4,9 @@ import { ENV } from "@novastatus/env";
 import { registerIoHandlers } from "~/io";
 
 // Define allowed origins based on environment
-const devOrigins =
-	ENV.NODE_ENV === "development"
-		? ["http://localhost:3000", "https://localhost:3000"]
-		: [];
+const devOrigins = ENV.NODE_ENV === "development" ? ["http://localhost:3000", "https://localhost:3000"] : [];
 
-const allowedOrigins = [ENV.BETTER_AUTH_URL, ...devOrigins].filter(
-	(origin) => origin !== null,
-);
+const allowedOrigins = [ENV.BETTER_AUTH_URL, ...devOrigins].filter((origin) => origin !== null);
 
 export let io: Server;
 

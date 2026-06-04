@@ -9,19 +9,16 @@ import { passkey } from "@better-auth/passkey";
 
 import { ENV } from "@novastatus/env";
 
-
 export const auth = betterAuth({
 	baseURL: ENV.BETTER_AUTH_URL,
 	secret: ENV.BETTER_AUTH_SECRET,
-  trustedOrigins: [ENV.BETTER_AUTH_URL],
+	trustedOrigins: [ENV.BETTER_AUTH_URL],
 	appName: "StarlightV",
 
 	database: drizzleAdapter(db, {
 		provider: "pg",
 		usePlural: true,
 	}),
-
-
 
 	advanced: {
 		// database: {
@@ -31,11 +28,10 @@ export const auth = betterAuth({
 			ipAddressHeaders: ["x-forwarded-for"],
 		},
 
-    useSecureCookies: true,
-    crossSubDomainCookies: {
-      enabled: false,
-
-    },
+		useSecureCookies: true,
+		crossSubDomainCookies: {
+			enabled: false,
+		},
 		cookiePrefix: "nova-status",
 	},
 
@@ -43,11 +39,8 @@ export const auth = betterAuth({
 		throw: false,
 	},
 
-
-
 	user: {
 		additionalFields: {
-
 			admin: {
 				type: "boolean",
 				input: false,
@@ -68,20 +61,17 @@ export const auth = betterAuth({
 				type: "boolean",
 				default: false,
 			},
-
 		},
 	},
 
 	socialProviders: {
-    // /api/auth/callback/github
-    github: {
-
-      clientId: ENV.BETTER_AUTH_GITHUB_CLIENT_ID,
-      clientSecret: ENV.BETTER_AUTH_GITHUB_CLIENT_SECRET,
-      prompt: "consent",
-
-    },
-  },
+		// /api/auth/callback/github
+		github: {
+			clientId: ENV.BETTER_AUTH_GITHUB_CLIENT_ID,
+			clientSecret: ENV.BETTER_AUTH_GITHUB_CLIENT_SECRET,
+			prompt: "consent",
+		},
+	},
 	plugins: [
 		// passkey({
 		// 	origin: ENV.BETTER_AUTH_URL,
@@ -94,11 +84,8 @@ export const auth = betterAuth({
 		// 		webAuthnChallengeCookie: "control-starlightv-webauthn_challenge",
 		// 	},
 		// }),
-
 	],
 });
-
-
 
 export async function getAuth(): Promise<SessionType> {
 	const data = await auth.api.getSession({
@@ -114,7 +101,6 @@ export async function getAuth(): Promise<SessionType> {
 	};
 }
 
-
 declare module "better-auth" {
-	type SessionType = typeof auth.$Infer.Session
+	type SessionType = typeof auth.$Infer.Session;
 }

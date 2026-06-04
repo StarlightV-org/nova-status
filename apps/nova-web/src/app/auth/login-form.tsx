@@ -8,7 +8,6 @@ import { useEffect, useState } from "react";
 import { Spinner } from "~/components/ui/spinner";
 import { authClient, signIn } from "~/lib/auth-client";
 
-
 import { toast } from "sonner";
 
 import { useRouter, useSearchParams } from "next/navigation";
@@ -134,7 +133,7 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
 										<Spinner />
 									) : (
 										<>
-										<GithubDark/>
+											<GithubDark />
 											Login with GitHub
 										</>
 									)}

@@ -6,7 +6,6 @@ import { passkeyClient } from "@better-auth/passkey/client";
 import { oneTimeTokenClient } from "better-auth/client/plugins";
 import { ENV } from "@novastatus/env";
 
-
 /**
  * Use current origin in browser so auth (incl. passkey reauth popup) always targets
  * the correct domain. Env var can default to localhost when not set at prod build time.

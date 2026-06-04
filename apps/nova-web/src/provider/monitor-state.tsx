@@ -6,87 +6,100 @@ import { useSocket } from "./web-socket";
 import { subSeconds } from "date-fns";
 
 export type MonitorState = {
-  [key: string]: MonitorStateEntry
+	[key: string]: MonitorStateEntry;
 };
 
 type MonitorSocketUpdate = {
-  monitorId: string;
-  status: MonitorStatusDB["status"];
-  responseTime: number;
-  message?: string;
+	monitorId: string;
+	status: MonitorStatusDB["status"];
+	responseTime: number;
+	message?: string;
 };
 
 const MonitorStateContext = createContext<MonitorState>({});
 
 export function useMonitorState() {
-  return useContext(MonitorStateContext);
+	return useContext(MonitorStateContext);
 }
 
-function applyMonitorUpdates(
-  prev: MonitorState,
-  updates: MonitorSocketUpdate[],
-): MonitorState {
-  let changed = false;
-  const next = { ...prev };
+function applyMonitorUpdates(prev: MonitorState, updates: MonitorSocketUpdate[]): MonitorState {
+	let changed = false;
+	const next = { ...prev };
 
-  for (const update of updates) {
-    const entry = next[update.monitorId];
-    if (!entry) continue;
+	for (const update of updates) {
+		const entry = next[update.monitorId];
+		if (!entry) continue;
 
-    const statusEntry: MonitorStatusDB = {
-      id: `live-${update.monitorId}-${Date.now()}`,
-      monitorId: update.monitorId,
-      status: update.status,
-      responseTime: update.responseTime,
-      message: update.message ?? null,
-      checkedAt: subSeconds(new Date(), 15),
-    };
+		const statusEntry: MonitorStatusDB = {
+			id: `live-${update.monitorId}-${Date.now()}`,
+			monitorId: update.monitorId,
+			status: update.status,
+			responseTime: update.responseTime,
+			message: update.message ?? null,
+			checkedAt: subSeconds(new Date(), 15),
+		};
 
-    next[update.monitorId] = {
-      ...entry,
-      states: [statusEntry, ...entry.states],
-    };
-    changed = true;
-  }
+		next[update.monitorId] = {
+			...entry,
+			states: [statusEntry, ...entry.states],
+		};
+		changed = true;
+	}
 
-  return changed ? next : prev;
+	return changed ? next : prev;
 }
 
-export function MonitorStateProvider({ children, initialState }: { children: React.ReactNode; initialState: MonitorState }) {
-  const [state, setState] = useState<MonitorState>(initialState);
-  const socket = useSocket();
+export function MonitorStateProvider({
+	children,
+	initialState,
+}: {
+	children: React.ReactNode;
+	initialState: MonitorState;
+}) {
+	const [state, setState] = useState<MonitorState>(initialState);
+	const socket = useSocket();
 
+	useEffect(() => {
+		if (!socket) return;
 
+		socket.emit("monitors:subscribe-all", (success: boolean) => {
+			if (success) {
+				Print.Success("monitors:subscribe-all", "success");
+			} else {
+				Print.Error("monitors:subscribe-all", "failure");
+			}
+		});
 
-  useEffect(() => {
-    if (!socket) return;
+		const onMonitorsAll = (updates: MonitorSocketUpdate[]) => {
+			Print.Debug("monitors:all", updates);
+			setState((prev) => applyMonitorUpdates(prev, updates));
+		};
 
-    socket.emit("monitors:subscribe-all", (success: boolean) => {
-      if (success) {
-        Print.Success("monitors:subscribe-all", "success");
-      } else {
-        Print.Error("monitors:subscribe-all", "failure");
-      }
-    });
+		socket.on("monitors:all", onMonitorsAll);
 
-    const onMonitorsAll = (updates: MonitorSocketUpdate[]) => {
-      Print.Debug("monitors:all", updates);
-      setState((prev) => applyMonitorUpdates(prev, updates));
-    };
+		return () => {
+			socket.off("monitors:all", onMonitorsAll);
+			socket.emit("monitors:unsubscribe-all", (success: boolean) => {
+				if (success) {
+					Print.Success("monitors:unsubscribe-all", "success");
+				} else {
+					Print.Error("monitors:unsubscribe-all", "failure");
+				}
+			});
+		};
+	}, [socket]);
 
-    socket.on("monitors:all", onMonitorsAll);
+	useEffect(() => {
+		socket?.on("reconnect", () => {
+			socket.emit("monitors:subscribe-all", (success: boolean) => {
+				if (success) {
+					Print.Success("monitors:subscribe-all", "success");
+				} else {
+					Print.Error("monitors:subscribe-all", "failure");
+				}
+			});
+		});
+	}, [socket]);
 
-    return () => {
-      socket.off("monitors:all", onMonitorsAll);
-      socket.emit("monitors:unsubscribe-all", (success: boolean) => {
-        if (success) {
-          Print.Success("monitors:unsubscribe-all", "success");
-        } else {
-          Print.Error("monitors:unsubscribe-all", "failure");
-        }
-      });
-    };
-  }, [socket]);
-
-  return <MonitorStateContext.Provider value={state}>{children}</MonitorStateContext.Provider>;
+	return <MonitorStateContext.Provider value={state}>{children}</MonitorStateContext.Provider>;
 }

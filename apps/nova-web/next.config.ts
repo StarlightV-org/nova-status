@@ -3,12 +3,11 @@
  * for Docker builds.
  */
 import type { NextConfig } from "next";
-import "@novastatus/env"
-import "@novastatus/print"
-
+import "@novastatus/env";
+import "@novastatus/print";
 
 const config: NextConfig = {
-  reactStrictMode: true,
+	reactStrictMode: true,
 	reactCompiler: true,
 	typescript: {
 		ignoreBuildErrors: true,

@@ -13,8 +13,6 @@ import superjson from "superjson";
 import z, { ZodError } from "zod";
 import { auth, getAuth } from "~/lib/auth";
 
-
-
 /**
  * 1. CONTEXT
  *
@@ -28,13 +26,13 @@ import { auth, getAuth } from "~/lib/auth";
  * @see https://trpc.io/docs/server/context
  */
 export const createTRPCContext = async (opts: { headers: Headers }) => {
-  const { session, user } = await getAuth()
-  return {
-    db,
-    session,
-    user,
-    ...opts,
-  };
+	const { session, user } = await getAuth();
+	return {
+		db,
+		session,
+		user,
+		...opts,
+	};
 };
 
 /**
@@ -45,17 +43,16 @@ export const createTRPCContext = async (opts: { headers: Headers }) => {
  * errors on the backend.
  */
 const t = initTRPC.context<typeof createTRPCContext>().create({
-  transformer: superjson,
-  errorFormatter({ shape, error }) {
-    return {
-      ...shape,
-      data: {
-        ...shape.data,
-        zodError:
-          error.cause instanceof ZodError ? z.treeifyError(error.cause) : null,
-      },
-    };
-  },
+	transformer: superjson,
+	errorFormatter({ shape, error }) {
+		return {
+			...shape,
+			data: {
+				...shape.data,
+				zodError: error.cause instanceof ZodError ? z.treeifyError(error.cause) : null,
+			},
+		};
+	},
 });
 
 /**
@@ -80,29 +77,29 @@ export const createCallerFactory = t.createCallerFactory;
 export const createTRPCRouter = t.router;
 
 const timingMiddleware = t.middleware(async ({ next, path, ctx }) => {
-  const start = Date.now();
-  const result = await next();
-  const end = Date.now();
+	const start = Date.now();
+	const result = await next();
+	const end = Date.now();
 
-  Print.TRPC(path, end - start, {
-    name: ctx.user.name ?? "no-name",
-    id: ctx.user?.id ?? "no-id",
-    session: ctx.session?.id ?? "no-session",
-    ok: result.ok,
-  });
-  return result;
+	Print.TRPC(path, end - start, {
+		name: ctx.user.name ?? "no-name",
+		id: ctx.user?.id ?? "no-id",
+		session: ctx.session?.id ?? "no-session",
+		ok: result.ok,
+	});
+	return result;
 });
 
 const errorMiddleware = t.middleware(async ({ next, path, ctx }) => {
-  const result = await next();
-  if (!result.ok) {
-    Print.TRPCError(path, result.error, {
-      name: ctx.user?.name ?? "no-name",
-      id: ctx.user?.id ?? "no-id",
-      session: ctx.session?.id ?? "no-session",
-    });
-  }
-  return result;
+	const result = await next();
+	if (!result.ok) {
+		Print.TRPCError(path, result.error, {
+			name: ctx.user?.name ?? "no-name",
+			id: ctx.user?.id ?? "no-id",
+			session: ctx.session?.id ?? "no-session",
+		});
+	}
+	return result;
 });
 /**
  * Public (unauthenticated) procedure
@@ -111,20 +108,19 @@ const errorMiddleware = t.middleware(async ({ next, path, ctx }) => {
  * guarantee that a user querying is authorized, but you can still access user session data if they
  * are logged in.
  */
-export const publicProcedure = t.procedure.use(timingMiddleware)
+export const publicProcedure = t.procedure.use(timingMiddleware);
 
 export const protectedProcedure = t.procedure
-  .use(timingMiddleware)
-  .use(errorMiddleware)
-  .use(({ ctx, next }) => {
-    if (!ctx.session || !ctx.user.id) {
-      throw new TRPCError({ code: "FORBIDDEN", message: "Unauthorized" });
-    }
+	.use(timingMiddleware)
+	.use(errorMiddleware)
+	.use(({ ctx, next }) => {
+		if (!ctx.session || !ctx.user.id) {
+			throw new TRPCError({ code: "FORBIDDEN", message: "Unauthorized" });
+		}
 
-
-    return next({
-      ctx: {
-        session: { ...ctx.session, user: ctx.user },
-      },
-    });
-  });
+		return next({
+			ctx: {
+				session: { ...ctx.session, user: ctx.user },
+			},
+		});
+	});

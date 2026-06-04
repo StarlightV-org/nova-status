@@ -1,7 +1,7 @@
 "use client";
 import type { SessionType } from "better-auth";
 import { createContext, useContext, useEffect, type ReactNode } from "react";
-import "@novastatus/print"
+import "@novastatus/print";
 
 const SessionContext = createContext<SessionType>({} as SessionType);
 

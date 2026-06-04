@@ -25,7 +25,7 @@ export function startChecker(checkerFn: () => Promise<void>) {
 
 	const delayMs = targetSeconds * 1000 - milliseconds;
 
-	Print.Info(`Starting checker. First run in ${delayMs}ms (at :${seconds < 30 ? '30' : '00'})`);
+	Print.Info(`Starting checker. First run in ${delayMs}ms (at :${seconds < 30 ? "30" : "00"})`);
 
 	// Schedule first run at the nearest 30s mark
 	timer = setTimeout(() => {

@@ -13,17 +13,15 @@ import { generateShortId } from "@novastatus/lib";
 
 // Create auth instance for websocket server
 export const auth = betterAuth({
-  baseURL: ENV.BETTER_AUTH_URL,
+	baseURL: ENV.BETTER_AUTH_URL,
 	secret: ENV.BETTER_AUTH_SECRET,
-   trustedOrigins: [ENV.BETTER_AUTH_URL],
+	trustedOrigins: [ENV.BETTER_AUTH_URL],
 	appName: "StarlightV",
 
 	database: drizzleAdapter(db, {
 		provider: "pg",
 		usePlural: true,
 	}),
-
-
 
 	advanced: {
 		ipAddress: {
@@ -38,11 +36,8 @@ export const auth = betterAuth({
 		throw: false,
 	},
 
-
-
 	user: {
 		additionalFields: {
-
 			admin: {
 				type: "boolean",
 				input: false,
@@ -63,10 +58,8 @@ export const auth = betterAuth({
 				type: "boolean",
 				default: false,
 			},
-
 		},
 	},
-
 });
 
 const envToLogger = {

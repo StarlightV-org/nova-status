@@ -179,7 +179,7 @@ async function executeMonitor(
 	const startTime = Date.now();
 
 	let result: {
-		status: "up" | "down" | "degraded";
+		status: "up" | "down";
 		responseTime: number;
 		message?: string;
 	};
@@ -188,7 +188,14 @@ async function executeMonitor(
 		switch (type) {
 			case "HTTP":
 				result = await checkHTTP(
-					data as { url: string; method: string; headers?: Record<string, string>; body?: string; timeout: number },
+					data as {
+						url: string;
+						method: string;
+						headers?: Record<string, string>;
+						body?: string;
+						timeout: number;
+						acceptedStatusCodes?: number[];
+					},
 				);
 				break;
 			case "HTTP+keyword":
@@ -219,10 +226,11 @@ async function executeMonitor(
 			case "MYSQL":
 				result = await checkMySQL(
 					data as {
-						host: string;
-						port: number;
-						username: string;
-						password: string;
+						connectionString?: string;
+						host?: string;
+						port?: number;
+						username?: string;
+						password?: string;
 						database?: string;
 						query: string;
 						timeout: number;
@@ -232,13 +240,14 @@ async function executeMonitor(
 			case "POSTGRESQL":
 				result = await checkPostgreSQL(
 					data as {
-						host: string;
-						port: number;
-						username: string;
-						password: string;
-						database: string;
+						connectionString?: string;
+						host?: string;
+						port?: number;
+						username?: string;
+						password?: string;
+						database?: string;
 						query: string;
-						ssl: boolean;
+						ssl?: boolean;
 						timeout: number;
 					},
 				);
@@ -248,7 +257,15 @@ async function executeMonitor(
 				break;
 			case "REDIS":
 				result = await checkRedis(
-					data as { host: string; port: number; password?: string; database: number; command: string; timeout: number },
+					data as {
+						connectionString?: string;
+						host?: string;
+						port?: number;
+						password?: string;
+						database?: number;
+						command: string;
+						timeout: number;
+					},
 				);
 				break;
 			default:
@@ -274,6 +291,13 @@ async function executeMonitor(
 	return result;
 }
 
+function isHttpStatusAccepted(status: number, acceptedStatusCodes?: number[]): boolean {
+	if (acceptedStatusCodes && acceptedStatusCodes.length > 0) {
+		return acceptedStatusCodes.includes(status);
+	}
+	return status >= 200 && status < 300;
+}
+
 // MARK: HTTP Check
 async function checkHTTP(data: {
 	url: string;
@@ -281,6 +305,7 @@ async function checkHTTP(data: {
 	headers?: Record<string, string>;
 	body?: string;
 	timeout: number;
+	acceptedStatusCodes?: number[];
 }) {
 	const controller = new AbortController();
 	const timeoutId = setTimeout(() => controller.abort(), Math.min(data.timeout, CHECK_TIMEOUT_MS));
@@ -297,12 +322,12 @@ async function checkHTTP(data: {
 		clearTimeout(timeoutId);
 
 		const responseTime = Date.now() - startTime;
-		const status = response.ok ? "up" : "down";
+		const accepted = isHttpStatusAccepted(response.status, data.acceptedStatusCodes);
 
 		return {
-			status: status as "up" | "down",
+			status: accepted ? "up" : "down",
 			responseTime,
-			message: response.ok ? undefined : `HTTP ${response.status}: ${response.statusText}`,
+			message: accepted ? undefined : `HTTP ${response.status}: ${response.statusText}`,
 		};
 	} catch (error) {
 		clearTimeout(timeoutId);
@@ -539,10 +564,11 @@ async function checkDocker(data: {
 
 // MARK: MySQL Check
 async function checkMySQL(data: {
-	host: string;
-	port: number;
-	username: string;
-	password: string;
+	connectionString?: string;
+	host?: string;
+	port?: number;
+	username?: string;
+	password?: string;
 	database?: string;
 	query: string;
 	timeout: number;
@@ -551,14 +577,16 @@ async function checkMySQL(data: {
 	const mysql = await import("mysql2/promise");
 	const startTime = Date.now();
 
-	const connection = await mysql.createConnection({
-		host: data.host,
-		port: data.port,
-		user: data.username,
-		password: data.password,
-		database: data.database,
-		connectTimeout: Math.min(data.timeout, CHECK_TIMEOUT_MS),
-	});
+	const connection = data.connectionString
+		? await mysql.createConnection(data.connectionString)
+		: await mysql.createConnection({
+				host: data.host,
+				port: data.port ?? 3306,
+				user: data.username,
+				password: data.password,
+				database: data.database,
+				connectTimeout: Math.min(data.timeout, CHECK_TIMEOUT_MS),
+			});
 
 	try {
 		await connection.execute(data.query);
@@ -573,28 +601,34 @@ async function checkMySQL(data: {
 
 // MARK: PostgreSQL Check
 async function checkPostgreSQL(data: {
-	host: string;
-	port: number;
-	username: string;
-	password: string;
-	database: string;
+	connectionString?: string;
+	host?: string;
+	port?: number;
+	username?: string;
+	password?: string;
+	database?: string;
 	query: string;
-	ssl: boolean;
+	ssl?: boolean;
 	timeout: number;
 }): Promise<{ status: "up" | "down"; responseTime: number; message?: string }> {
 	// Dynamic import pg to avoid bundling issues
 	const { Client } = await import("pg");
 	const startTime = Date.now();
 
-	const client = new Client({
-		host: data.host,
-		port: data.port,
-		user: data.username,
-		password: data.password,
-		database: data.database,
-		ssl: data.ssl,
-		connectionTimeoutMillis: Math.min(data.timeout, CHECK_TIMEOUT_MS),
-	});
+	const client = data.connectionString
+		? new Client({
+				connectionString: data.connectionString,
+				connectionTimeoutMillis: Math.min(data.timeout, CHECK_TIMEOUT_MS),
+			})
+		: new Client({
+				host: data.host,
+				port: data.port ?? 5432,
+				user: data.username,
+				password: data.password,
+				database: data.database,
+				ssl: data.ssl ?? false,
+				connectionTimeoutMillis: Math.min(data.timeout, CHECK_TIMEOUT_MS),
+			});
 
 	try {
 		await client.connect();
@@ -635,10 +669,11 @@ async function checkMongoDB(data: {
 
 // MARK: Redis Check
 async function checkRedis(data: {
-	host: string;
-	port: number;
+	connectionString?: string;
+	host?: string;
+	port?: number;
 	password?: string;
-	database: number;
+	database?: number;
 	command: string;
 	timeout: number;
 }): Promise<{ status: "up" | "down"; responseTime: number; message?: string }> {
@@ -646,15 +681,21 @@ async function checkRedis(data: {
 	const { Redis } = await import("ioredis");
 	const startTime = Date.now();
 
-	const redis = new Redis({
-		host: data.host,
-		port: data.port,
-		password: data.password,
-		db: data.database,
-		connectTimeout: Math.min(data.timeout, CHECK_TIMEOUT_MS),
-		commandTimeout: Math.min(data.timeout, CHECK_TIMEOUT_MS),
-		lazyConnect: true,
-	});
+	const redis = data.connectionString
+		? new Redis(data.connectionString, {
+				connectTimeout: Math.min(data.timeout, CHECK_TIMEOUT_MS),
+				commandTimeout: Math.min(data.timeout, CHECK_TIMEOUT_MS),
+				lazyConnect: true,
+			})
+		: new Redis({
+				host: data.host,
+				port: data.port ?? 6379,
+				password: data.password,
+				db: data.database ?? 0,
+				connectTimeout: Math.min(data.timeout, CHECK_TIMEOUT_MS),
+				commandTimeout: Math.min(data.timeout, CHECK_TIMEOUT_MS),
+				lazyConnect: true,
+			});
 
 	try {
 		await redis.connect();

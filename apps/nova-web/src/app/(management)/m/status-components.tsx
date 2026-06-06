@@ -1,8 +1,19 @@
 "use client";
+import Link from "next/link";
+import type { MonitorStatusDB } from "@novastatus/db/schema";
+
 import { Card } from "~/components/ui/card";
 import { StatusTimeline } from "~/components/status-timeline";
 import { UptimeBadge } from "~/components/ui/uptime-badge";
+import { cn } from "~/lib/utils";
 import { useMonitorState } from "~/provider/monitor-state";
+
+const STATUS_DOT: Record<MonitorStatusDB["status"], string> = {
+	up: "bg-emerald-500",
+	down: "bg-red-500",
+	pending: "bg-orange-500",
+	maintenance: "bg-blue-500",
+};
 
 export function StatusComponent() {
 	const monitorState = useMonitorState();
@@ -25,15 +36,27 @@ export function MonitorCard({ monitorId }: { monitorId: string }) {
 	const data = monitorState[monitorId];
 	if (!data) return null;
 
+	const current = data.states?.[0];
+	const status = current?.status ?? "pending";
+	const responseTime = current?.responseTime;
+
 	return (
-		<Card className="p-4">
-			<div className="flex flex-row justify-between gap-3">
-				<div className="flex flex-row items-center gap-2">
-					<UptimeBadge percent={data.uptime.total} />
-					<p>{data.label}</p>
+		<Link href={`/m/${monitorId}`} className="block">
+			<Card size="sm" className="gap-1 px-2 py-1.5 data-[size=sm]:gap-1 data-[size=sm]:py-1.5 transition-colors hover:bg-muted/50">
+				<div className="flex flex-row items-center justify-between gap-1.5">
+					<div className="flex min-w-0 flex-row items-center gap-1.5">
+						<span className={cn("size-2 shrink-0 rounded-full", STATUS_DOT[status])} aria-hidden />
+						<p className="truncate font-medium">{data.label}</p>
+					</div>
+					<div className="flex shrink-0 flex-row items-center gap-1.5">
+						<span className="text-xs text-muted-foreground tabular-nums">
+							{responseTime != null ? `${responseTime}ms` : "—"}
+						</span>
+						<UptimeBadge percent={data.uptime.total} />
+					</div>
 				</div>
 				<StatusTimeline states={data.states} />
-			</div>
-		</Card>
+			</Card>
+		</Link>
 	);
 }

@@ -19,18 +19,33 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 			addTrailingSlash: false,
 			autoConnect: true,
 			reconnection: true,
-			reconnectionAttempts: 5,
+			reconnectionAttempts: Infinity,
 			reconnectionDelay: 1000,
 			withCredentials: true,
 		});
 
 		setSocket(socketInstance);
 
-		socketInstance.on("connect", () => {
+		const onConnect = () => {
 			Print.StartUp("Connected to socket");
-		});
+		};
+
+		const onDisconnect = (reason: string) => {
+			Print.Error("web-socket", `disconnected: ${reason}`);
+		};
+
+		const onConnectError = (error: Error) => {
+			Print.Error("web-socket", `connect_error: ${error.message}`);
+		};
+
+		socketInstance.on("connect", onConnect);
+		socketInstance.on("disconnect", onDisconnect);
+		socketInstance.on("connect_error", onConnectError);
 
 		return () => {
+			socketInstance.off("connect", onConnect);
+			socketInstance.off("disconnect", onDisconnect);
+			socketInstance.off("connect_error", onConnectError);
 			socketInstance.close();
 		};
 	}, []);

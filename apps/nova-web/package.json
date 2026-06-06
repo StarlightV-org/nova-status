@@ -4,10 +4,6 @@
 	"private": true,
 	"type": "module",
 	"dependencies": {
-		"@novastatus/db": "workspace:*",
-		"@novastatus/env": "workspace:*",
-		"@novastatus/print": "workspace:*",
-		"@novastatus/lib": "workspace:*",
 		"@tailwindcss/postcss": "^4.3.0",
 		"class-variance-authority": "^0.7.1"
 	},

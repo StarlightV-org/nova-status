@@ -17,6 +17,6 @@
 		"noFallthroughCasesInSwitch": true,
 		"noImplicitOverride": true,
 		"noEmit": true,
-		"skipLibCheck": true
-	}
+		"skipLibCheck": true,
+	},
 }

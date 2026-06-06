@@ -3,7 +3,6 @@
 import { inspect } from "node:util";
 import chalk from "chalk";
 import { formatDate } from "date-fns";
-// import { env } from "~/env";
 import type { TRPCError } from "@trpc/server";
 
 /** Which `console.*` to use (affects stdout vs stderr in Node). */

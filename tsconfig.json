@@ -2,19 +2,22 @@
 	"files": [],
 	"references": [
 		{
-			"path": "./apps/nova-web"
+			"path": "./apps/nova-web",
 		},
 		{
-			"path": "./packages/db"
+			"path": "./apps/nova-socket",
 		},
 		{
-			"path": "./packages/env"
+			"path": "./packages/db",
 		},
 		{
-			"path": "./packages/print"
+			"path": "./packages/env",
 		},
 		{
-			"path": "./packages/lib"
-		}
-	]
+			"path": "./packages/print",
+		},
+		{
+			"path": "./packages/lib",
+		},
+	],
 }

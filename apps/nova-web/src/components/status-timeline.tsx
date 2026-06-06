@@ -195,7 +195,7 @@ export function StatusTimeline({
 
 			{tip && (
 				<div
-					className="pointer-events-none fixed z-50 -translate-x-1/2 -translate-y-full rounded-md bg-card px-3 py-1.5 text-xs text-background capitalize shadow-md"
+					className="pointer-events-none fixed z-50 -translate-x-1/2 -translate-y-full rounded-md border bg-card px-3 py-1.5 text-xs text-muted-foreground capitalize shadow-md"
 					style={{ left: tip.x, top: tip.y - 8 }}
 				>
 					{tip.beat.status} · {tip.beat.responseTime != null ? `${tip.beat.responseTime}ms` : "—"} ·{" "}

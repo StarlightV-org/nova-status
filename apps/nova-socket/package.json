@@ -3,17 +3,8 @@
 	"version": "0.1.0",
 	"private": true,
 	"type": "module",
-	"dependencies": {
-		"@novastatus/db": "workspace:*",
-		"@novastatus/env": "workspace:*",
-		"@novastatus/print": "workspace:*",
-		"@novastatus/lib": "workspace:*"
-	},
 	"scripts": {
 		"dev": "bun --watch --env-file ../../.env  src/index.ts",
 		"ts": "tsgo --noEmit"
-	},
-	"ct3aMetadata": {
-		"initVersion": "7.40.0"
 	}
 }

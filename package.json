@@ -1,5 +1,5 @@
 {
-	"name": "nova-monitor",
+	"name": "nova-status",
 	"private": true,
 	"packageManager": "bun@1.3.14",
 	"workspaces": [
@@ -14,13 +14,13 @@
 		"dk": "drizzle-kit --config=./packages/db/drizzle.config.ts",
 		"dev": "turbo run dev",
 		"dev:web": "cd apps/nova-web && bun dev",
-		"dev:socket": "cd apps/nova-socket && bun dev",
-		"lint": "turbo run check",
-		"preview": "turbo run preview",
-		"start": "turbo run start",
-		"typecheck": "turbo run typecheck"
+		"dev:socket": "cd apps/nova-socket && bun dev"
 	},
 	"dependencies": {
+		"@novastatus/db": "workspace:*",
+		"@novastatus/env": "workspace:*",
+		"@novastatus/print": "workspace:*",
+		"@novastatus/lib": "workspace:*",
 		"@auth/drizzle-adapter": "^1.7.2",
 		"@better-auth/passkey": "1.6.11",
 		"@fastify/express": "^4.0.6",

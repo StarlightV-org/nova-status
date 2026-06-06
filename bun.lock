@@ -8,6 +8,10 @@
         "@auth/drizzle-adapter": "^1.7.2",
         "@better-auth/passkey": "1.6.11",
         "@fastify/express": "^4.0.6",
+        "@novastatus/db": "workspace:*",
+        "@novastatus/env": "workspace:*",
+        "@novastatus/lib": "workspace:*",
+        "@novastatus/print": "workspace:*",
         "@t3-oss/env-core": "^0.13.11",
         "@t3-oss/env-nextjs": "^0.13.11",
         "@tanstack/react-query": "^5.69.0",
@@ -61,21 +65,11 @@
     "apps/nova-socket": {
       "name": "@novastatus/socket",
       "version": "0.1.0",
-      "dependencies": {
-        "@novastatus/db": "workspace:*",
-        "@novastatus/env": "workspace:*",
-        "@novastatus/lib": "workspace:*",
-        "@novastatus/print": "workspace:*",
-      },
     },
     "apps/nova-web": {
       "name": "@novastatus/web",
       "version": "0.1.0",
       "dependencies": {
-        "@novastatus/db": "workspace:*",
-        "@novastatus/env": "workspace:*",
-        "@novastatus/lib": "workspace:*",
-        "@novastatus/print": "workspace:*",
         "@tailwindcss/postcss": "^4.3.0",
         "class-variance-authority": "^0.7.1",
       },
@@ -83,12 +77,6 @@
     "packages/db": {
       "name": "@novastatus/db",
       "version": "0.1.0",
-      "dependencies": {
-        "@novastatus/db": "workspace:*",
-        "@novastatus/env": "workspace:*",
-        "@novastatus/lib": "workspace:*",
-        "@novastatus/print": "workspace:*",
-      },
     },
     "packages/env": {
       "name": "@novastatus/env",

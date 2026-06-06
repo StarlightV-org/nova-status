@@ -10,6 +10,7 @@ import { Field, FieldDescription, FieldError, FieldLabel, FieldSeparator } from 
 import { Input } from "~/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
 import { Textarea } from "~/components/ui/textarea";
+import { useT } from "~/provider/locale-provider";
 import {
 	getMonitorFields,
 	isUsingConnectionUri,
@@ -27,9 +28,15 @@ type MonitorFormProps = {
 function RecordField({
 	value,
 	onChange,
+	keyPlaceholder,
+	valuePlaceholder,
+	addRowLabel,
 }: {
 	value: Record<string, string>;
 	onChange: (next: Record<string, string>) => void;
+	keyPlaceholder: string;
+	valuePlaceholder: string;
+	addRowLabel: string;
 }) {
 	const entries = Object.entries(value ?? {});
 
@@ -51,8 +58,8 @@ function RecordField({
 		<div className="flex flex-col gap-1.5">
 			{entries.map(([key, val], index) => (
 				<div key={index} className="flex flex-row items-center gap-1.5">
-					<Input placeholder="Key" value={key} onChange={(e) => update(index, e.target.value, val)} />
-					<Input placeholder="Value" value={val} onChange={(e) => update(index, key, e.target.value)} />
+					<Input placeholder={keyPlaceholder} value={key} onChange={(e) => update(index, e.target.value, val)} />
+					<Input placeholder={valuePlaceholder} value={val} onChange={(e) => update(index, key, e.target.value)} />
 					<Button type="button" variant="ghost" size="icon-sm" onClick={() => remove(index)}>
 						<X />
 					</Button>
@@ -60,7 +67,7 @@ function RecordField({
 			))}
 			<Button type="button" variant="outline" size="sm" className="w-fit" onClick={add}>
 				<Plus />
-				Add row
+				{addRowLabel}
 			</Button>
 		</div>
 	);
@@ -88,11 +95,19 @@ function MonitorField({
 	value,
 	error,
 	onChange,
+	selectPlaceholder,
+	recordKeyPlaceholder,
+	recordValuePlaceholder,
+	addRowLabel,
 }: {
 	field: FieldDescriptor;
 	value: unknown;
 	error: string | undefined;
 	onChange: (value: unknown) => void;
+	selectPlaceholder: string;
+	recordKeyPlaceholder: string;
+	recordValuePlaceholder: string;
+	addRowLabel: string;
 }) {
 	const invalid = Boolean(error);
 
@@ -123,7 +138,7 @@ function MonitorField({
 			{field.kind === "enum" && (
 				<Select value={String(value ?? "")} onValueChange={(next) => onChange(next)}>
 					<SelectTrigger className="w-full" aria-invalid={invalid}>
-						<SelectValue placeholder={`Select ${field.label.toLowerCase()}`} />
+						<SelectValue placeholder={selectPlaceholder} />
 					</SelectTrigger>
 					<SelectContent>
 						{field.options?.map((option) => (
@@ -136,7 +151,13 @@ function MonitorField({
 			)}
 
 			{field.kind === "record" && (
-				<RecordField value={(value as Record<string, string>) ?? {}} onChange={(next) => onChange(next)} />
+				<RecordField
+					value={(value as Record<string, string>) ?? {}}
+					onChange={(next) => onChange(next)}
+					keyPlaceholder={recordKeyPlaceholder}
+					valuePlaceholder={recordValuePlaceholder}
+					addRowLabel={addRowLabel}
+				/>
 			)}
 
 			{field.kind === "numberArray" && (
@@ -167,7 +188,8 @@ function MonitorField({
 }
 
 export function MonitorForm({ type, values, errors, onChange }: MonitorFormProps) {
-	const fields = getMonitorFields(type);
+	const t = useT();
+	const fields = getMonitorFields(type, t);
 	const uriAlternativeFields = URI_HIDDEN_FIELDS[type] ?? [];
 	const usingUri = isUsingConnectionUri(values);
 	const hiddenFields = new Set(usingUri ? uriAlternativeFields : []);
@@ -186,12 +208,16 @@ export function MonitorForm({ type, values, errors, onChange }: MonitorFormProps
 
 				return (
 					<div key={field.key} className="flex flex-col gap-2">
-						{showSeparator && <FieldSeparator>Or configure individually</FieldSeparator>}
+						{showSeparator && <FieldSeparator>{t("monitor.form.orConfigureIndividually")}</FieldSeparator>}
 						<MonitorField
 							field={field}
 							value={values[field.key]}
 							error={errors[field.key]}
 							onChange={(value) => onChange(field.key, value)}
+							selectPlaceholder={t("common.select", { label: field.label.toLowerCase() })}
+							recordKeyPlaceholder={t("common.key")}
+							recordValuePlaceholder={t("common.value")}
+							addRowLabel={t("common.addRow")}
 						/>
 					</div>
 				);

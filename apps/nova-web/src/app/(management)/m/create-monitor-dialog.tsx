@@ -1,8 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
-import { MONITOR_TYPES, type MonitorCategory, type MonitorType } from "@novastatus/lib/monitorTypes.ts";
+import {
+	CREATE_MONITOR_FIELDS,
+	MONITOR_TYPES,
+	monitorCategoryMessageKey,
+	monitorTypeMessageKey,
+	type MonitorCategory,
+	type MonitorType,
+} from "@novastatus/lib/monitorTypes.ts";
 
 import { Button } from "~/components/ui/button";
 import {
@@ -25,17 +33,20 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "~/components/ui/select";
-import { useMonitorLayout } from "~/provider/monitor-state";
+import { useT } from "~/provider/locale-provider";
 import { api } from "~/trpc/react";
+import type { SidebarGroup } from "./app-sidebar";
 import { MonitorForm } from "./monitor-form";
 import { coerceMonitorData, getInitialMonitorData, validateMonitorData } from "./monitor-schema";
 
 const NO_GROUP = "__none__";
 const CATEGORIES = Object.keys(MONITOR_TYPES) as MonitorCategory[];
+const COMMON = CREATE_MONITOR_FIELDS;
 
-export function CreateMonitorDialog() {
+export function CreateMonitorDialog({ groups }: { groups: SidebarGroup[] }) {
+	const t = useT();
+	const router = useRouter();
 	const utils = api.useUtils();
-	const { groups, replaceFromMonitors } = useMonitorLayout();
 
 	const [open, setOpen] = useState(false);
 	const [step, setStep] = useState<1 | 2>(1);
@@ -52,8 +63,8 @@ export function CreateMonitorDialog() {
 
 	const createMonitor = api.monitor.create.useMutation({
 		onSuccess: async () => {
-			const monitors = await utils.monitor.get.fetch();
-			replaceFromMonitors(monitors);
+			await utils.monitor.get.invalidate();
+			router.refresh();
 			closeAndReset();
 		},
 		onError: (error) => {
@@ -91,9 +102,9 @@ export function CreateMonitorDialog() {
 
 	function validateStepOne() {
 		const errors: Record<string, string | undefined> = {};
-		if (label.trim().length === 0) errors.label = "Label is required";
-		if (!Number.isFinite(interval) || interval < 30) errors.interval = "Interval must be at least 30 seconds";
-		else if (interval % 30 !== 0) errors.interval = "Interval must be a multiple of 30 seconds";
+		if (label.trim().length === 0) errors.label = t("monitor.create.validation.labelRequired");
+		if (!Number.isFinite(interval) || interval < 30) errors.interval = t("monitor.create.validation.intervalMin");
+		else if (interval % 30 !== 0) errors.interval = t("monitor.create.validation.intervalMultiple");
 		setCommonErrors(errors);
 		return Object.keys(errors).length === 0;
 	}
@@ -105,7 +116,7 @@ export function CreateMonitorDialog() {
 	function handleSubmit() {
 		setSubmitError(undefined);
 		const coerced = coerceMonitorData(type, data);
-		const result = validateMonitorData(type, coerced);
+		const result = validateMonitorData(type, coerced, t);
 
 		if (!result.success) {
 			setDataErrors(result.errors);
@@ -121,6 +132,8 @@ export function CreateMonitorDialog() {
 		});
 	}
 
+	const typeLabel = t(monitorTypeMessageKey(type));
+
 	return (
 		<Dialog
 			open={open}
@@ -132,15 +145,17 @@ export function CreateMonitorDialog() {
 			<DialogTrigger asChild>
 				<Button size="sm">
 					<Plus />
-					New monitor
+					{t("sidebar.newMonitor")}
 				</Button>
 			</DialogTrigger>
 
 			<DialogContent className="gap-2 p-3 sm:max-w-md">
 				<DialogHeader className="gap-0.5">
-					<DialogTitle>{step === 1 ? "Create monitor" : `Configure ${type}`}</DialogTitle>
+					<DialogTitle>
+						{step === 1 ? t("monitor.create.title") : t("monitor.create.configure", { type: typeLabel })}
+					</DialogTitle>
 					<DialogDescription>
-						{step === 1 ? "Pick a monitor type and set the basics." : "Fill in the type-specific settings."}
+						{step === 1 ? t("monitor.create.step1Description") : t("monitor.create.step2Description")}
 					</DialogDescription>
 				</DialogHeader>
 
@@ -149,14 +164,15 @@ export function CreateMonitorDialog() {
 						<div className="flex flex-col gap-2">
 							<Field data-invalid={Boolean(commonErrors.label)}>
 								<FieldLabel>
-									Label<span className="text-destructive"> *</span>
+									{t(COMMON.label.labelKey!)}
+									{COMMON.label.required && <span className="text-destructive"> *</span>}
 								</FieldLabel>
 								<Input value={label} onChange={(e) => setLabel(e.target.value)} aria-invalid={Boolean(commonErrors.label)} />
 								<FieldError>{commonErrors.label}</FieldError>
 							</Field>
 
 							<Field>
-								<FieldLabel>Type</FieldLabel>
+								<FieldLabel>{t(COMMON.type.labelKey!)}</FieldLabel>
 								<Select value={type} onValueChange={(next) => handleTypeChange(next as MonitorType)}>
 									<SelectTrigger className="w-full">
 										<SelectValue />
@@ -164,10 +180,10 @@ export function CreateMonitorDialog() {
 									<SelectContent>
 										{CATEGORIES.map((category) => (
 											<SelectGroup key={category}>
-												<SelectLabel>{category}</SelectLabel>
+												<SelectLabel>{t(monitorCategoryMessageKey(category))}</SelectLabel>
 												{MONITOR_TYPES[category].map((monitorType) => (
 													<SelectItem key={monitorType} value={monitorType}>
-														{monitorType}
+														{t(monitorTypeMessageKey(monitorType))}
 													</SelectItem>
 												))}
 											</SelectGroup>
@@ -177,7 +193,7 @@ export function CreateMonitorDialog() {
 							</Field>
 
 							<Field data-invalid={Boolean(commonErrors.interval)}>
-								<FieldLabel>Interval (seconds)</FieldLabel>
+								<FieldLabel>{t(COMMON.interval.labelKey!)}</FieldLabel>
 								<Input
 									type="number"
 									step={30}
@@ -186,18 +202,20 @@ export function CreateMonitorDialog() {
 									onChange={(e) => setInterval(e.target.value === "" ? NaN : Number(e.target.value))}
 									aria-invalid={Boolean(commonErrors.interval)}
 								/>
-								<FieldDescription>How often the monitor runs. Must be a multiple of 30.</FieldDescription>
+								{COMMON.interval.descriptionKey && (
+									<FieldDescription>{t(COMMON.interval.descriptionKey)}</FieldDescription>
+								)}
 								<FieldError>{commonErrors.interval}</FieldError>
 							</Field>
 
 							<Field>
-								<FieldLabel>Group</FieldLabel>
+								<FieldLabel>{t(COMMON.group.labelKey!)}</FieldLabel>
 								<Select value={groupId} onValueChange={setGroupId}>
 									<SelectTrigger className="w-full">
-										<SelectValue placeholder="No group" />
+										<SelectValue placeholder={t("monitor.create.groupNone")} />
 									</SelectTrigger>
 									<SelectContent>
-										<SelectItem value={NO_GROUP}>No group</SelectItem>
+										<SelectItem value={NO_GROUP}>{t("monitor.create.groupNone")}</SelectItem>
 										{groups.map((group) => (
 											<SelectItem key={group.id} value={group.id}>
 												{group.label}
@@ -216,14 +234,14 @@ export function CreateMonitorDialog() {
 
 				<DialogFooter className="-mx-3 -mb-3 gap-1.5 p-3">
 					{step === 1 ? (
-						<Button onClick={handleNext}>Next</Button>
+						<Button onClick={handleNext}>{t("common.next")}</Button>
 					) : (
 						<>
 							<Button variant="outline" onClick={() => setStep(1)}>
-								Back
+								{t("common.back")}
 							</Button>
 							<Button onClick={handleSubmit} disabled={createMonitor.isPending}>
-								{createMonitor.isPending ? "Creating..." : "Create"}
+								{createMonitor.isPending ? t("common.creating") : t("common.create")}
 							</Button>
 						</>
 					)}

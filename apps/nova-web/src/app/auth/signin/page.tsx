@@ -1,29 +1,32 @@
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { LoginForm } from "~/app/auth/login-form";
 import { Avatar, AvatarImage } from "~/components/ui/avatar";
 import { getAuth } from "~/lib/auth";
+import { getRequestTranslator } from "~/lib/locale";
 
-export const metadata: Metadata = {
-	metadataBase: new URL("https://control.starlightv.de"),
-	title: "Anmelden beim StarlightV Control Panel",
-	icons: [{ rel: "icon", url: "/favicon.ico" }],
-	openGraph: {
-		title: "Anmelden beim StarlightV Control Panel",
-		images: [
-			{
-				url: "/favicon.ico",
-				alt: "starlightv.de Logo ",
-			},
-		],
-	},
-};
+export async function generateMetadata(): Promise<Metadata> {
+	const t = await getRequestTranslator();
+	return {
+		metadataBase: new URL("https://control.starlightv.de"),
+		title: t("auth.signIn.title"),
+		icons: [{ rel: "icon", url: "/favicon.ico" }],
+		openGraph: {
+			title: t("auth.signIn.title"),
+			images: [
+				{
+					url: "/favicon.ico",
+					alt: "starlightv.de Logo ",
+				},
+			],
+		},
+	};
+}
 
 export default async function LoginPage() {
-	const { user, session } = await getAuth();
+	const { session } = await getAuth();
 
 	if (session) {
 		return redirect("/m");

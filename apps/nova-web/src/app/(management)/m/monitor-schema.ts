@@ -1,3 +1,4 @@
+import type { MessageKey, TranslateFn } from "@novastatus/lib/i18n/index.ts";
 import { MONITOR_SCHEMA, type MonitorSchemaMeta, type MonitorType } from "@novastatus/lib/monitorTypes.ts";
 import type { z } from "zod";
 
@@ -21,6 +22,13 @@ type ZodDef = {
 	options?: unknown[];
 	defaultValue?: unknown;
 };
+
+const KNOWN_MESSAGE_KEYS = new Set<string>([
+	"monitor.validation.hostRequired",
+	"monitor.validation.usernameRequired",
+	"monitor.validation.passwordRequired",
+	"monitor.validation.databaseRequired",
+]);
 
 function getDef(schema: unknown): ZodDef | undefined {
 	if (!schema || typeof schema !== "object") return undefined;
@@ -86,7 +94,30 @@ function readMeta(schema: unknown): MonitorSchemaMeta {
 	return meta ?? {};
 }
 
-export function getMonitorFields(type: MonitorType): FieldDescriptor[] {
+function translateIssueMessage(message: string, t: TranslateFn): string {
+	if (KNOWN_MESSAGE_KEYS.has(message)) {
+		return t(message as MessageKey);
+	}
+	if (message.startsWith("monitor.")) {
+		return t(message as MessageKey);
+	}
+	return message;
+}
+
+function mapZodIssueToKey(issue: { code: string; format?: string; origin?: string; expected?: string }): MessageKey | null {
+	if (issue.code === "invalid_format" && issue.format === "url") {
+		return "monitor.validation.invalidUrl";
+	}
+	if (issue.code === "too_small" && issue.origin === "string") {
+		return "monitor.validation.tooSmall";
+	}
+	if (issue.code === "invalid_type" && issue.expected === "number") {
+		return "monitor.validation.invalidNumber";
+	}
+	return null;
+}
+
+export function getMonitorFields(type: MonitorType, t: TranslateFn): FieldDescriptor[] {
 	const schema = MONITOR_SCHEMA[type] as unknown as z.ZodObject;
 	const shape = schema.shape as Record<string, unknown>;
 
@@ -98,8 +129,8 @@ export function getMonitorFields(type: MonitorType): FieldDescriptor[] {
 			key,
 			kind,
 			required: meta.required ?? false,
-			label: meta.label ?? key,
-			description: meta.description,
+			label: meta.labelKey ? t(meta.labelKey) : key,
+			description: meta.descriptionKey ? t(meta.descriptionKey) : undefined,
 			options,
 			defaultValue: resolveDefault(fieldSchema),
 		};
@@ -129,7 +160,11 @@ export type MonitorValidationResult =
 	| { success: true; data: Record<string, unknown> }
 	| { success: false; errors: Record<string, string | undefined> };
 
-export function validateMonitorData(type: MonitorType, data: Record<string, unknown>): MonitorValidationResult {
+export function validateMonitorData(
+	type: MonitorType,
+	data: Record<string, unknown>,
+	t: TranslateFn,
+): MonitorValidationResult {
 	const result = MONITOR_SCHEMA[type].safeParse(data);
 
 	if (result.success) {
@@ -140,7 +175,8 @@ export function validateMonitorData(type: MonitorType, data: Record<string, unkn
 	for (const issue of result.error.issues) {
 		const key = issue.path[0];
 		if (typeof key === "string" && !errors[key]) {
-			errors[key] = issue.message;
+			const mappedKey = mapZodIssueToKey(issue);
+			errors[key] = mappedKey ? t(mappedKey) : translateIssueMessage(issue.message, t);
 		}
 	}
 
@@ -150,7 +186,7 @@ export function validateMonitorData(type: MonitorType, data: Record<string, unkn
 export function coerceMonitorData(type: MonitorType, values: Record<string, unknown>): Record<string, unknown> {
 	const result: Record<string, unknown> = {};
 
-	for (const field of getMonitorFields(type)) {
+	for (const field of getMonitorFields(type, (key) => key)) {
 		const raw = values[field.key];
 
 		switch (field.kind) {
@@ -194,7 +230,7 @@ export function coerceMonitorData(type: MonitorType, values: Record<string, unkn
 
 export function getInitialMonitorData(type: MonitorType): Record<string, unknown> {
 	const values: Record<string, unknown> = {};
-	for (const field of getMonitorFields(type)) {
+	for (const field of getMonitorFields(type, (key) => key)) {
 		switch (field.kind) {
 			case "boolean":
 				values[field.key] = field.defaultValue ?? false;

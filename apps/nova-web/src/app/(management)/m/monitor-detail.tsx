@@ -1,6 +1,7 @@
 "use client";
 
 import type { MonitorStatusDB } from "@novastatus/db/schema";
+import type { MessageKey } from "@novastatus/lib/i18n/index.ts";
 import { useMemo, useState } from "react";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 
@@ -21,16 +22,17 @@ import {
 } from "~/components/ui/select";
 import { formatUptimePercent } from "~/components/ui/uptime-badge";
 import { cn } from "~/lib/utils";
+import { useT } from "~/provider/locale-provider";
 import { useMonitorState } from "~/provider/monitor-state";
 import { api, type RouterOutputs } from "~/trpc/react";
 
 type MonitorDetailData = RouterOutputs["monitor"]["getById"];
 
-const STATUS_LABEL: Record<MonitorStatusDB["status"], string> = {
-	up: "Online",
-	down: "Offline",
-	pending: "Pending",
-	maintenance: "Maintenance",
+const STATUS_LABEL_KEYS: Record<MonitorStatusDB["status"], MessageKey> = {
+	up: "status.up",
+	down: "status.down",
+	pending: "status.pending",
+	maintenance: "status.maintenance",
 };
 
 const STATUS_BADGE: Record<MonitorStatusDB["status"], string> = {
@@ -48,12 +50,11 @@ const CHART_RANGES = {
 
 type ChartRange = keyof typeof CHART_RANGES;
 
-const chartConfig = {
-	responseTime: {
-		label: "Avg ping",
-		color: "var(--chart-2)",
-	},
-} satisfies ChartConfig;
+const CHART_RANGE_KEYS: Record<ChartRange, MessageKey> = {
+	"1h": "monitorDetail.lastHour",
+	"6h": "monitorDetail.last6Hours",
+	"24h": "monitorDetail.last24Hours",
+};
 
 function mergeStatusHistory(history: MonitorStatusDB[], live: MonitorStatusDB[]): MonitorStatusDB[] {
 	const seen = new Set<string>();
@@ -66,15 +67,6 @@ function mergeStatusHistory(history: MonitorStatusDB[], live: MonitorStatusDB[])
 	}
 
 	return merged.sort((a, b) => new Date(b.checkedAt).getTime() - new Date(a.checkedAt).getTime());
-}
-
-function formatCheckInterval(seconds: number) {
-	if (seconds < 60) return `Checked every ${seconds} seconds`;
-	const minutes = seconds / 60;
-	if (Number.isInteger(minutes)) {
-		return `Checked every ${seconds} seconds (${minutes} minute${minutes === 1 ? "" : "s"})`;
-	}
-	return `Checked every ${seconds} seconds`;
 }
 
 function formatChartTime(value: string) {
@@ -130,6 +122,7 @@ export function MonitorDetail({
 	monitorId: string;
 	initialData: MonitorDetailData;
 }) {
+	const t = useT();
 	const liveEntry = useMonitorState()[monitorId];
 	const { data } = api.monitor.getById.useQuery({ id: monitorId }, { initialData });
 
@@ -165,6 +158,25 @@ export function MonitorDetail({
 		return Math.ceil(peak / 200) * 200;
 	}, [chartData]);
 
+	const chartConfig = {
+		responseTime: {
+			label: t("monitorDetail.avgPing"),
+			color: "var(--chart-2)",
+		},
+	} satisfies ChartConfig;
+
+	const checkIntervalLabel = useMemo(() => {
+		const minutes = interval / 60;
+		if (Number.isInteger(minutes) && minutes >= 1) {
+			return t("monitorDetail.checkedEveryMinutes", {
+				seconds: interval,
+				minutes,
+				minuteLabel: minutes === 1 ? t("monitorDetail.minute") : t("monitorDetail.minutes"),
+			});
+		}
+		return t("monitorDetail.checkedEvery", { seconds: interval });
+	}, [interval, t]);
+
 	return (
 		<div className="flex flex-col gap-6 p-4">
 			<div>
@@ -175,11 +187,11 @@ export function MonitorDetail({
 						<div className="flex items-start gap-4">
 							<div className="min-w-0 flex-1">
 								<div className="mb-1 flex justify-between text-xs text-muted-foreground">
-									<span>1h</span>
-									<span>now</span>
+									<span>{t("monitorDetail.hour1")}</span>
+									<span>{t("monitorDetail.now")}</span>
 								</div>
 								<StatusTimeline states={states} className="w-full" />
-								<p className="mt-2 text-xs text-muted-foreground">{formatCheckInterval(interval)}</p>
+								<p className="mt-2 text-xs text-muted-foreground">{checkIntervalLabel}</p>
 							</div>
 							<span
 								className={cn(
@@ -187,7 +199,7 @@ export function MonitorDetail({
 									STATUS_BADGE[status],
 								)}
 							>
-								{STATUS_LABEL[status]}
+								{t(STATUS_LABEL_KEYS[status])}
 							</span>
 						</div>
 					</CardContent>
@@ -195,12 +207,32 @@ export function MonitorDetail({
 			</div>
 
 			<div className="grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-6">
-				<MetricStat label="Response" detail="current" value={formatMs(current?.responseTime)} />
-				<MetricStat label="Avg response" detail="24h" value={formatMs(avg24h)} />
-				<MetricStat label="Uptime" detail="24h" value={formatUptimePercent(uptime.last1day)} />
-				<MetricStat label="Uptime" detail="7d" value={formatUptimePercent(uptime.last7days)} />
-				<MetricStat label="Uptime" detail="all time" value={formatUptimePercent(uptime.total)} />
-				<MetricStat label="Check interval" value={`${interval}s`} />
+				<MetricStat
+					label={t("monitorDetail.response")}
+					detail={t("monitorDetail.current")}
+					value={formatMs(current?.responseTime)}
+				/>
+				<MetricStat
+					label={t("monitorDetail.avgResponse")}
+					detail={t("monitorDetail.hours24")}
+					value={formatMs(avg24h)}
+				/>
+				<MetricStat
+					label={t("monitorDetail.uptime")}
+					detail={t("monitorDetail.hours24")}
+					value={formatUptimePercent(uptime.last1day)}
+				/>
+				<MetricStat
+					label={t("monitorDetail.uptime")}
+					detail={t("monitorDetail.days7")}
+					value={formatUptimePercent(uptime.last7days)}
+				/>
+				<MetricStat
+					label={t("monitorDetail.uptime")}
+					detail={t("monitorDetail.allTime")}
+					value={formatUptimePercent(uptime.total)}
+				/>
+				<MetricStat label={t("monitorDetail.checkInterval")} value={`${interval}s`} />
 			</div>
 
 			<Card className="py-4">
@@ -218,9 +250,11 @@ export function MonitorDetail({
 								<SelectValue />
 							</SelectTrigger>
 							<SelectContent align="end">
-								<SelectItem value="1h">Last hour</SelectItem>
-								<SelectItem value="6h">Last 6 hours</SelectItem>
-								<SelectItem value="24h">Last 24 hours</SelectItem>
+								{(Object.keys(CHART_RANGES) as ChartRange[]).map((range) => (
+									<SelectItem key={range} value={range}>
+										{t(CHART_RANGE_KEYS[range])}
+									</SelectItem>
+								))}
 							</SelectContent>
 						</Select>
 					</div>
@@ -250,7 +284,7 @@ export function MonitorDetail({
 								domain={[0, yMax]}
 								tickFormatter={(value) => `${value}`}
 								label={{
-									value: "Response (ms)",
+									value: t("monitorDetail.responseMs"),
 									angle: -90,
 									position: "insideLeft",
 									offset: 4,

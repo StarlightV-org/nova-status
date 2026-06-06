@@ -8,6 +8,7 @@
  */
 
 import { db } from "@novastatus/db";
+import { createTranslator, parseAcceptLanguage } from "@novastatus/lib/i18n/index.ts";
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import z, { ZodError } from "zod";
@@ -27,10 +28,13 @@ import { auth, getAuth } from "~/lib/auth";
  */
 export const createTRPCContext = async (opts: { headers: Headers }) => {
 	const { session, user } = await getAuth();
+	const locale = parseAcceptLanguage(opts.headers.get("accept-language"));
 	return {
 		db,
 		session,
 		user,
+		locale,
+		t: createTranslator(locale),
 		...opts,
 	};
 };
@@ -115,7 +119,7 @@ export const protectedProcedure = t.procedure
 	.use(errorMiddleware)
 	.use(({ ctx, next }) => {
 		if (!ctx.session || !ctx.user.id) {
-			throw new TRPCError({ code: "FORBIDDEN", message: "Unauthorized" });
+			throw new TRPCError({ code: "FORBIDDEN", message: ctx.t("monitor.validation.unauthorized") });
 		}
 
 		return next({

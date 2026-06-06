@@ -1,7 +1,7 @@
 "use client";
 import type { MonitorStatusDB } from "@novastatus/db/schema";
+import type { MonitorStatusSocketPayload } from "@novastatus/lib/monitorSocket.ts";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
-import { subSeconds } from "date-fns";
 
 import {
 	buildMonitorLayoutFromGet,
@@ -24,13 +24,6 @@ type MonitorStateContextValue = {
 	replaceFromMonitors: (monitors: MonitorGetResult) => void;
 };
 
-type MonitorSocketUpdate = {
-	monitorId: string;
-	status: MonitorStatusDB["status"];
-	responseTime: number;
-	message?: string;
-};
-
 const MonitorStateContext = createContext<MonitorStateContextValue | null>(null);
 
 export function useMonitorState() {
@@ -46,7 +39,7 @@ export function useMonitorLayout() {
 	return ctx;
 }
 
-function applyMonitorUpdates(prev: MonitorState, updates: MonitorSocketUpdate[]): MonitorState {
+function applyMonitorUpdates(prev: MonitorState, updates: MonitorStatusSocketPayload[]): MonitorState {
 	let changed = false;
 	const next = { ...prev };
 
@@ -55,17 +48,18 @@ function applyMonitorUpdates(prev: MonitorState, updates: MonitorSocketUpdate[])
 		if (!entry) continue;
 
 		const statusEntry: MonitorStatusDB = {
-			id: `live-${update.monitorId}-${Date.now()}`,
+			id: `live-${update.monitorId}-${update.timestamp}`,
 			monitorId: update.monitorId,
 			status: update.status,
 			responseTime: update.responseTime,
 			message: update.message ?? null,
-			checkedAt: subSeconds(new Date(), 15),
+			checkedAt: new Date(update.timestamp),
 		};
 
 		next[update.monitorId] = {
 			...entry,
 			states: [statusEntry, ...entry.states],
+			uptime: update.uptime,
 		};
 		changed = true;
 	}
@@ -118,7 +112,7 @@ export function MonitorStateProvider({
 			Print.Error("monitor-state", `socket disconnected: ${reason}`);
 		};
 
-		const onMonitorsAll = (updates: MonitorSocketUpdate[]) => {
+		const onMonitorsAll = (updates: MonitorStatusSocketPayload[]) => {
 			Print.Debug("monitors:all", updates);
 			setState((prev) => applyMonitorUpdates(prev, updates));
 		};

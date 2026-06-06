@@ -1,6 +1,8 @@
 import { db } from "@novastatus/db";
 import { monitorStatus, type MonitorDB } from "@novastatus/db/schema";
+import type { MonitorStatusSocketPayload } from "@novastatus/lib/monitorSocket.ts";
 import { MONITOR_SCHEMA, type MonitorType } from "@novastatus/lib/monitorTypes.ts";
+import { type MonitorUptime, uptimeForMonitors } from "@novastatus/lib/uptime.ts";
 import { io } from "~/socket";
 import net from "node:net";
 import * as dns from "node:dns/promises";
@@ -82,45 +84,48 @@ function scheduleEmit() {
 
 	// Schedule emit at :15 or :45
 	emitTimer = setTimeout(() => {
-		emitAllResults();
+		void emitAllResults();
 	}, EMIT_OFFSET_MS);
 }
 
-function emitAllResults() {
+const DEFAULT_UPTIME: MonitorUptime = {
+	total: 100,
+	last1day: 100,
+	last7days: 100,
+};
+
+async function emitAllResults() {
 	if (pendingResults.length === 0) return;
 
 	const timestamp = new Date().toISOString();
+	const monitorIds = [...new Set(pendingResults.map((result) => result.monitorId))];
+	const uptimeByMonitorId = await uptimeForMonitors(db, monitorIds);
 
-	// Emit to individual monitor rooms
-	for (const result of pendingResults) {
-		const roomName = `monitor:${result.monitorId}`;
+	const enrichedResults: MonitorStatusSocketPayload[] = pendingResults.map((result) => ({
+		monitorId: result.monitorId,
+		status: result.status === "degraded" ? "down" : result.status,
+		responseTime: result.responseTime,
+		message: result.message,
+		timestamp,
+		uptime: uptimeByMonitorId.get(result.monitorId) ?? DEFAULT_UPTIME,
+	}));
 
-		// Emit to specific monitor room
-		if (io) {
-			io.to(roomName).emit("monitor:status", {
-				monitorId: result.monitorId,
-				status: result.status,
-				responseTime: result.responseTime,
-				message: result.message,
-				timestamp,
-			});
-		}
-	}
-
-	// Emit all results to the global monitors:all room (for dashboards/admin)
 	if (io) {
+		for (const payload of enrichedResults) {
+			io.to(`monitor:${payload.monitorId}`).emit("monitor:status", payload);
+		}
+
 		io.to("monitors:all").emit("monitors:batch", {
-			results: pendingResults,
+			results: enrichedResults,
 			timestamp,
-			count: pendingResults.length,
+			count: enrichedResults.length,
 		});
 
-		io.to("monitors:all").emit("monitors:all", pendingResults);
+		io.to("monitors:all").emit("monitors:all", enrichedResults);
 	}
 
-	Print.Debug(`Emitted batch of ${pendingResults.length} monitor results`);
+	Print.Debug(`Emitted batch of ${enrichedResults.length} monitor results`);
 
-	// Clear pending results
 	pendingResults.length = 0;
 }
 

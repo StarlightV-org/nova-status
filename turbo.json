@@ -1,9 +1,11 @@
 {
 	"$schema": "https://turbo.build/schema.json",
+	"globalPassThroughEnv": ["SKIP_VALIDATION"],
 	"tasks": {
 		"build": {
 			"dependsOn": ["^build"],
-			"outputs": ["dist/**", ".next/**", "!.next/cache/**", "out/**"]
+			"outputs": ["dist/**", ".next/**", "!.next/cache/**", "out/**"],
+			"passThroughEnv": ["SKIP_VALIDATION"]
 		},
 		"dev": {
 			"cache": false,

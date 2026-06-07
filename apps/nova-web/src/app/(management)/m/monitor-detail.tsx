@@ -259,7 +259,11 @@ export function MonitorDetail({
 						</Select>
 					</div>
 
-					<ChartContainer config={chartConfig} className="aspect-auto h-[280px] w-full">
+					<ChartContainer
+						config={chartConfig}
+						className="aspect-auto h-[280px] min-h-[280px] w-full"
+						initialDimension={{ width: 640, height: 280 }}
+					>
 						<AreaChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
 							<defs>
 								<linearGradient id={`fillResponseTime-${monitorId}`} x1="0" y1="0" x2="0" y2="1">

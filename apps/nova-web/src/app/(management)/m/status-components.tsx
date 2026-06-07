@@ -68,7 +68,7 @@ export function MonitorCard({ monitorId }: { monitorId: string }) {
 						<UptimeBadge percent={data.uptime.total} />
 					</div>
 				</div>
-				<StatusTimeline states={data.states} />
+				<StatusTimeline states={data.states} limit={40} className="w-full" />
 			</Card>
 		</Link>
 	);

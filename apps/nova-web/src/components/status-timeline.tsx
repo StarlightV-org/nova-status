@@ -71,7 +71,7 @@ function drawBeat(ctx: CanvasRenderingContext2D, x: number, centerY: number, bea
 
 export function StatusTimeline({
 	states,
-	limit = 40,
+	limit,
 	className,
 }: {
 	states: MonitorStatusDB[];
@@ -82,22 +82,19 @@ export function StatusTimeline({
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const prevLen = useRef(states.length);
 
-	const [fitBeat, setFitBeat] = useState(1);
+	const [fitBeat, setFitBeat] = useState(limit ?? 40);
 	const [move, setMove] = useState(false);
 	const [hover, setHover] = useState(-1);
 	const [tip, setTip] = useState<{ beat: MonitorStatusDB; x: number; y: number } | null>(null);
 
-	const maxBeat = limit ?? fitBeat;
+	const maxBeat = limit != null ? Math.min(limit, fitBeat) : fitBeat;
 	const beats = useMemo(() => buildBeats(states, maxBeat, move), [states, maxBeat, move]);
 	const sliding = move && beats.length > maxBeat;
 	const canvasW = beats.length * BEAT_STEP;
 	const canvasH = BEAT_H * HOVER_SCALE;
 	const padY = (canvasH - BEAT_H) / 2;
-	const viewW = maxBeat * BEAT_STEP;
 
 	useLayoutEffect(() => {
-		if (limit != null) return;
-
 		const el = wrapRef.current;
 		if (!el) return;
 
@@ -107,7 +104,7 @@ export function StatusTimeline({
 		const ro = new ResizeObserver(update);
 		ro.observe(el);
 		return () => ro.disconnect();
-	}, [limit]);
+	}, []);
 
 	useEffect(() => {
 		if (states.length === prevLen.current) return;
@@ -169,8 +166,8 @@ export function StatusTimeline({
 		<>
 			<div
 				ref={wrapRef}
-				className={cn(limit != null ? "shrink-0" : "min-w-0 flex-1", "overflow-hidden", className)}
-				style={{ width: viewW, paddingBlock: padY }}
+				className={cn("min-w-0 overflow-hidden", className)}
+				style={{ minHeight: canvasH + padY * 2, paddingBlock: padY }}
 			>
 				<div
 					className="will-change-transform"
@@ -182,6 +179,7 @@ export function StatusTimeline({
 					<canvas
 						ref={canvasRef}
 						className="block cursor-default"
+						style={{ width: canvasW, height: canvasH }}
 						role="img"
 						aria-label={`Monitor status history, ${Math.min(states.length, maxBeat)} checks`}
 						onMouseMove={onMouseMove}

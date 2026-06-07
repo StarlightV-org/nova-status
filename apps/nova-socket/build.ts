@@ -7,5 +7,6 @@ await Bun.build({
 	format: "esm",
 	minify: true,
 	env: "disable",
+	external: ["postgres", "pg", "pg-native", "mysql2", "mongodb", "ioredis"],
 	// sourcemap: "inline",
 });

@@ -1,5 +1,7 @@
 .git
+.github
 .cursor
+.vscode
 node_modules
 .next
 out
@@ -9,3 +11,7 @@ dist
 *.log
 **/*.tsbuildinfo
 .turbo
+**/.cursor
+**/*.md
+**/.plans
+biome.json

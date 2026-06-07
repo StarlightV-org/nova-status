@@ -15,7 +15,7 @@ export const en = {
 	},
 	auth: {
 		signIn: {
-			title: "Sign in to StarlightV Control Panel",
+			title: "Sign In",
 			welcome: "Welcome back",
 			description: "Sign in with your GitHub account.",
 			github: "Login with GitHub",
@@ -25,12 +25,10 @@ export const en = {
 		errors: {
 			"dc-email-not-verified":
 				"Your Discord account is not verified. Please confirm your email address on Discord before signing in.",
-			"no-discord-2fa":
-				"Your Discord account does not have 2FA enabled. Please enable 2FA on Discord before signing in.",
+			"no-discord-2fa": "Your Discord account does not have 2FA enabled. Please enable 2FA on Discord before signing in.",
 			"not-allowed-to-create-account":
 				"You are not allowed to sign in. Please contact the project lead if you believe this is a mistake.",
-			"account-locked":
-				"Your account is locked. Please contact the project lead if you believe this is a mistake.",
+			"account-locked": "Your account is locked. Please contact the project lead if you believe this is a mistake.",
 			"account-inactive":
 				"Your account is no longer active. Please contact the project lead if you believe this is a mistake.",
 			invalid_code: "Please wait a moment and try again.",

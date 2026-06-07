@@ -15,7 +15,7 @@ export const de = {
 	},
 	auth: {
 		signIn: {
-			title: "Anmelden beim StarlightV Control Panel",
+			title: "Anmelden",
 			welcome: "Willkommen zurück",
 			description: "Melde dich mit deinem GitHub Account an.",
 			github: "Mit GitHub anmelden",

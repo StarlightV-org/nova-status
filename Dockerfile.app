@@ -19,7 +19,16 @@ COPY packages packages
 ENV SKIP_VALIDATION=true
 ENV NODE_ENV=production
 
-RUN bunx turbo run build --filter=@novastatus/web --filter=@novastatus/socket --only
+RUN bunx turbo run build --filter=@novastatus/web --filter=@novastatus/socket --only \
+	&& rm -rf /root/.bun/install/cache
+
+FROM oven/bun:1.3.14-slim AS socket-deps
+
+WORKDIR /deps
+
+COPY docker/socket-deps.package.json ./package.json
+
+RUN bun install --production && rm -rf /root/.bun/install/cache
 
 FROM oven/bun:1.3.14-slim AS runner
 
@@ -33,8 +42,7 @@ COPY --from=builder /app/apps/nova-web/.next/standalone ./
 COPY --from=builder /app/apps/nova-web/.next/static ./apps/nova-web/.next/static
 COPY --from=builder /app/apps/nova-web/public ./apps/nova-web/public
 COPY --from=builder /app/apps/nova-socket/out ./apps/nova-socket/out
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/packages ./packages
+COPY --from=socket-deps /deps/node_modules/ ./node_modules/
 
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh

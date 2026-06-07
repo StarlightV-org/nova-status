@@ -27,6 +27,7 @@ const config: NextConfig = {
 			hmrRefreshes: false,
 			fullUrl: true,
 		},
+		browserToTerminal: false,
 	},
 	typedRoutes: true,
 

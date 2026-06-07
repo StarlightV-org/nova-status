@@ -2,8 +2,8 @@ services:
  nova-postgres:
   image: postgres:17-alpine
   container_name: nova-postgres
-  ports:
-   - "${POSTGRES_PORT:-5656}:5432"
+  expose:
+   - "5432"
   environment:
    POSTGRES_USER: ${POSTGRES_USER:-postgres}
    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
@@ -29,7 +29,7 @@ services:
 
  nova-app:
   image: "starlightv/nova-status-app:latest"
-  ports:
+  expose:
    - "3000"
   environment:
    NODE_ENV: production

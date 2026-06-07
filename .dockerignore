@@ -1,0 +1,11 @@
+.git
+.cursor
+node_modules
+.next
+out
+dist
+.env
+.env.*
+*.log
+**/*.tsbuildinfo
+.turbo

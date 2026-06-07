@@ -14,7 +14,10 @@
 		"dk": "drizzle-kit --config=./packages/db/drizzle.config.ts",
 		"dev": "turbo run dev",
 		"dev:web": "cd apps/nova-web && bun dev",
-		"dev:socket": "cd apps/nova-socket && bun dev"
+		"dev:socket": "cd apps/nova-socket && bun dev",
+		"docker:build:app": "docker build -f Dockerfile.app -t nova-status-app:latest .",
+		"docker:build:migrate": "docker build -f Dockerfile.migrate -t nova-status-migrate:latest .",
+		"docker:build": "bun run docker:build:app && bun run docker:build:migrate"
 	},
 	"dependencies": {
 		"@auth/drizzle-adapter": "^1.7.2",

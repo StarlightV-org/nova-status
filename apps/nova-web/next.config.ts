@@ -7,6 +7,7 @@ import "@novastatus/env";
 import "@novastatus/print";
 
 const config: NextConfig = {
+	output: "standalone",
 	reactStrictMode: true,
 	reactCompiler: true,
 	typescript: {

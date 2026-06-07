@@ -19,7 +19,7 @@ COPY packages packages
 ENV SKIP_VALIDATION=true
 ENV NODE_ENV=production
 
-RUN bun run build
+RUN bunx turbo run build --filter=@novastatus/web --filter=@novastatus/socket --only
 
 FROM oven/bun:1.3.14-slim AS runner
 

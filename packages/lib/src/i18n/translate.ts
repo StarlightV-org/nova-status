@@ -10,7 +10,7 @@ const catalogs: Record<Locale, Record<string, string>> = {
 
 export type MessageKey = keyof typeof catalogs.en;
 
-export function createTranslator(locale: Locale): TranslateFn {
+export function createTranslator(locale: Locale): TranslateFn<MessageKey> {
 	const messages = catalogs[locale];
 	const fallback = catalogs.en;
 

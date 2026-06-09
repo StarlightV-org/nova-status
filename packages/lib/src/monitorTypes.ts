@@ -22,6 +22,7 @@ export type MonitorSchemaMeta = Partial<{
 	labelKey: MessageKey;
 	descriptionKey: MessageKey;
 	required: boolean;
+	password: boolean;
 }>;
 
 export function monitorMeta(data: MonitorSchemaMeta): MonitorSchemaMeta {
@@ -81,25 +82,23 @@ export const MONITOR_SCHEMA = {
 	GROUP: z.object({
 		parrentId: z
 			.string()
-			.min(1)
+			.optional()
 			.meta(
 				monitorMeta({
 					labelKey: "monitor.fields.group.parrentId.label",
 					descriptionKey: "monitor.fields.group.parrentId.description",
-					required: true,
+					required: false,
 				}),
 			),
 	}),
 	HTTP: z.object({
-		url: z
-			.url()
-			.meta(
-				monitorMeta({
-					labelKey: "monitor.fields.http.url.label",
-					descriptionKey: "monitor.fields.http.url.description",
-					required: true,
-				}),
-			),
+		url: z.url().meta(
+			monitorMeta({
+				labelKey: "monitor.fields.http.url.label",
+				descriptionKey: "monitor.fields.http.url.description",
+				required: true,
+			}),
+		),
 		method: z
 			.enum(["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"])
 			.default("GET")
@@ -155,15 +154,13 @@ export const MONITOR_SCHEMA = {
 	}),
 
 	"HTTP+keyword": z.object({
-		url: z
-			.url()
-			.meta(
-				monitorMeta({
-					labelKey: "monitor.fields.httpKeyword.url.label",
-					descriptionKey: "monitor.fields.httpKeyword.url.description",
-					required: true,
-				}),
-			),
+		url: z.url().meta(
+			monitorMeta({
+				labelKey: "monitor.fields.httpKeyword.url.label",
+				descriptionKey: "monitor.fields.httpKeyword.url.description",
+				required: true,
+			}),
+		),
 		method: z
 			.enum(["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"])
 			.default("GET")

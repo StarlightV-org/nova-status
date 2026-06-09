@@ -1,0 +1,13 @@
+
+
+[install.scopes]
+# registry as string
+"@awesome.me" = { token = "$NPM_FONT_AWESOME", url = "https://npm.fontawesome.com" }
+"@fortawesome" = { token = "$NPM_FONT_AWESOME", url = "https://npm.fontawesome.com" }
+
+[install]
+# Only install package versions published at least 3 days ago
+minimumReleaseAge = 259200 # seconds
+
+[install.security]
+scanner = "bun"

@@ -2,10 +2,13 @@
 
 import type { MonitorStatusDB } from "@novastatus/db/schema";
 import type { MessageKey } from "@novastatus/lib/i18n/index.ts";
+import type { MonitorType } from "@novastatus/lib/monitorTypes.ts";
 import { useMemo, useState } from "react";
+import { Pencil, Trash2 } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 
 import { StatusTimeline } from "~/components/status-timeline";
+import { Button } from "~/components/ui/button";
 import { Card, CardContent } from "~/components/ui/card";
 import {
 	ChartContainer,
@@ -22,9 +25,11 @@ import {
 } from "~/components/ui/select";
 import { formatUptimePercent } from "~/components/ui/uptime-badge";
 import { cn } from "~/lib/utils";
+import { useDeleteMonitor } from "~/hooks/use-delete-monitor";
 import { useT } from "~/provider/locale-provider";
 import { useMonitorState } from "~/provider/monitor-state";
 import { api, type RouterOutputs } from "~/trpc/react";
+import { EditMonitorDialog } from "./edit-monitor-dialog";
 
 type MonitorDetailData = RouterOutputs["monitor"]["getById"];
 
@@ -127,6 +132,8 @@ export function MonitorDetail({
 	const { data } = api.monitor.getById.useQuery({ id: monitorId }, { initialData });
 
 	const [chartRange, setChartRange] = useState<ChartRange>("6h");
+	const [editOpen, setEditOpen] = useState(false);
+	const deleteMonitor = useDeleteMonitor();
 
 	const monitor = data ?? initialData;
 	const states = useMemo(
@@ -177,10 +184,41 @@ export function MonitorDetail({
 		return t("monitorDetail.checkedEvery", { seconds: interval });
 	}, [interval, t]);
 
+	const editMonitor = {
+		id: monitor.id,
+		label: monitor.label,
+		type: monitor.type as MonitorType,
+		interval: monitor.interval,
+		groupId: monitor.groupId,
+		data: monitor.data as Record<string, unknown>,
+	};
+
 	return (
 		<div className="flex flex-col gap-6 p-4">
 			<div>
-				<h1 className="mb-4 text-lg font-semibold">{monitor.label}</h1>
+				<div className="mb-4 flex items-center justify-between gap-3">
+					<h1 className="text-lg font-semibold">{monitor.label}</h1>
+					<div className="flex shrink-0 items-center gap-2">
+						<Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+							<Pencil />
+							{t("monitorDetail.edit")}
+						</Button>
+						<Button
+							variant="destructive"
+							size="sm"
+							onClick={() => void deleteMonitor({ id: monitor.id, label: monitor.label })}
+						>
+							<Trash2 />
+							{t("monitorDetail.delete")}
+						</Button>
+					</div>
+				</div>
+				<EditMonitorDialog
+					monitorId={monitorId}
+					monitor={editMonitor}
+					open={editOpen}
+					onOpenChange={setEditOpen}
+				/>
 
 				<Card className="py-4">
 					<CardContent className="flex flex-col gap-3">

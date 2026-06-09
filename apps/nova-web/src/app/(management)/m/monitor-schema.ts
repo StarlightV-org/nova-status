@@ -117,6 +117,10 @@ function mapZodIssueToKey(issue: { code: string; format?: string; origin?: strin
 	return null;
 }
 
+export function hasMonitorTypeConfig(type: MonitorType): boolean {
+	return getMonitorFields(type, (key) => key).length > 0;
+}
+
 export function getMonitorFields(type: MonitorType, t: TranslateFn): FieldDescriptor[] {
 	const schema = MONITOR_SCHEMA[type] as unknown as z.ZodObject;
 	const shape = schema.shape as Record<string, unknown>;
@@ -226,6 +230,15 @@ export function coerceMonitorData(type: MonitorType, values: Record<string, unkn
 	}
 
 	return result;
+}
+
+export function monitorDataToFormValues(
+	type: MonitorType,
+	data: Record<string, unknown> | null | undefined,
+): Record<string, unknown> {
+	const initial = getInitialMonitorData(type);
+	if (!data || typeof data !== "object") return initial;
+	return { ...initial, ...data };
 }
 
 export function getInitialMonitorData(type: MonitorType): Record<string, unknown> {

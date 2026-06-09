@@ -4,6 +4,8 @@ export const de = {
 		back: "Zurück",
 		create: "Erstellen",
 		creating: "Wird erstellt...",
+		save: "Speichern",
+		saving: "Wird gespeichert...",
 		key: "Schlüssel",
 		value: "Wert",
 		addRow: "Zeile hinzufügen",
@@ -45,6 +47,8 @@ export const de = {
 		noMonitors: "Keine Monitore",
 		none: "Keine Gruppe",
 		newMonitor: "Neuer Monitor",
+		editMonitor: "Monitor bearbeiten",
+		deleteMonitor: "Monitor löschen",
 	},
 	monitor: {
 		create: {
@@ -58,13 +62,33 @@ export const de = {
 			intervalDescription: "Wie oft der Monitor ausgeführt wird. Muss ein Vielfaches von 30 sein.",
 			group: "Gruppe",
 			groupNone: "Keine Gruppe",
+			typePlaceholder: "Typ auswählen",
 			validation: {
 				labelRequired: "Bezeichnung ist erforderlich",
+				typeRequired: "Typ ist erforderlich",
 				intervalMin: "Intervall muss mindestens 30 Sekunden betragen",
 				intervalMultiple: "Intervall muss ein Vielfaches von 30 Sekunden sein",
 			},
 		},
+		delete: {
+			title: "Monitor löschen",
+			description:
+				"{label} und der gesamte Statusverlauf werden dauerhaft gelöscht. Gib die Monitor-Bezeichnung unten ein, um zu bestätigen.",
+			confirm: "Löschen",
+			failed: "Monitor konnte nicht gelöscht werden",
+		},
+		edit: {
+			title: "Monitor bearbeiten",
+			configure: "{type} konfigurieren",
+			step1Description: "Aktualisiere die Monitor-Grundlagen.",
+			step2Description: "Aktualisiere die typspezifischen Einstellungen.",
+			typeLocked: "Gruppen-Monitore können nicht in einen anderen Typ geändert werden.",
+		},
 		form: {
+			basics: "Grundlagen",
+			configuration: "Konfiguration",
+			selectTypeHint: "Wähle einen Monitor-Typ, um typspezifische Einstellungen zu konfigurieren.",
+			noConfigNeeded: "Für diesen Monitor-Typ ist keine zusätzliche Konfiguration erforderlich.",
 			orConfigureIndividually: "Oder einzeln konfigurieren",
 		},
 		categories: {
@@ -182,6 +206,8 @@ export const de = {
 			passwordRequired: "Passwort ist erforderlich, wenn keine Verbindungs-URI angegeben ist",
 			databaseRequired: "Datenbank ist erforderlich, wenn keine Verbindungs-URI angegeben ist",
 			invalidData: "Ungültige Daten für {type}-Monitor",
+			typeChangeNotAllowed: "Gruppen-Monitore können nicht in einen anderen Typ geändert werden",
+			groupHasMonitors: "Eine Gruppe mit Monitoren kann nicht gelöscht werden",
 			notFound: "Monitor nicht gefunden",
 			unauthorized: "Nicht autorisiert",
 			invalidUrl: "Ungültige URL",
@@ -197,6 +223,8 @@ export const de = {
 		maintenance: "Wartung",
 	},
 	monitorDetail: {
+		edit: "Bearbeiten",
+		delete: "Löschen",
 		now: "jetzt",
 		hour1: "1h",
 		checkedEvery: "Prüfung alle {seconds} Sekunden",

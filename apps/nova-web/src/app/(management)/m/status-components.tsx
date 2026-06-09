@@ -1,14 +1,25 @@
 "use client";
 import Link from "next/link";
+import { useState } from "react";
+import { Pencil, Trash2 } from "lucide-react";
 import type { MonitorStatusDB } from "@novastatus/db/schema";
 import type { MessageKey } from "@novastatus/lib/i18n/index.ts";
 
 import { Card } from "~/components/ui/card";
+import {
+	ContextMenu,
+	ContextMenuContent,
+	ContextMenuItem,
+	ContextMenuSeparator,
+	ContextMenuTrigger,
+} from "~/components/ui/context-menu";
+import { useDeleteMonitor } from "~/hooks/use-delete-monitor";
 import { StatusTimeline } from "~/components/status-timeline";
 import { UptimeBadge } from "~/components/ui/uptime-badge";
 import { cn } from "~/lib/utils";
 import { useT } from "~/provider/locale-provider";
 import { useMonitorState } from "~/provider/monitor-state";
+import { EditMonitorDialog } from "./edit-monitor-dialog";
 
 const STATUS_LABEL_KEYS: Record<MonitorStatusDB["status"], MessageKey> = {
 	up: "status.up",
@@ -44,6 +55,9 @@ export function MonitorCard({ monitorId }: { monitorId: string }) {
 	const t = useT();
 	const monitorState = useMonitorState();
 	const data = monitorState[monitorId];
+	const [editOpen, setEditOpen] = useState(false);
+	const deleteMonitor = useDeleteMonitor();
+
 	if (!data) return null;
 
 	const current = data.states?.[0];
@@ -51,25 +65,56 @@ export function MonitorCard({ monitorId }: { monitorId: string }) {
 	const responseTime = current?.responseTime;
 
 	return (
-		<Link href={`/m/${monitorId}`} className="block">
-			<Card size="sm" className="gap-1 px-2 py-1.5 data-[size=sm]:gap-1 data-[size=sm]:py-1.5 transition-colors hover:bg-muted/50">
-				<div className="flex flex-row items-center justify-between gap-1.5">
-					<div className="flex min-w-0 flex-row items-center gap-1.5">
-						<span
-							className={cn("size-2 shrink-0 rounded-full", STATUS_DOT[status])}
-							aria-label={t(STATUS_LABEL_KEYS[status])}
-						/>
-						<p className="truncate font-medium">{data.label}</p>
-					</div>
-					<div className="flex shrink-0 flex-row items-center gap-1.5">
-						<span className="text-xs text-muted-foreground tabular-nums">
-							{responseTime != null ? `${responseTime}ms` : "—"}
-						</span>
-						<UptimeBadge percent={data.uptime.total} />
-					</div>
-				</div>
-				<StatusTimeline states={data.states} limit={40} className="w-full" />
-			</Card>
-		</Link>
+		<>
+			<ContextMenu>
+				<ContextMenuTrigger asChild>
+					<Link href={`/m/${monitorId}`} className="block">
+						<Card
+							size="sm"
+							className="gap-1 px-2 py-1.5 data-[size=sm]:gap-1 data-[size=sm]:py-1.5 transition-colors hover:bg-muted/50"
+						>
+							<div className="flex flex-row items-center justify-between gap-1.5">
+								<div className="flex min-w-0 flex-row items-center gap-1.5">
+									<span
+										className={cn("size-2 shrink-0 rounded-full", STATUS_DOT[status])}
+										aria-label={t(STATUS_LABEL_KEYS[status])}
+									/>
+									<p className="truncate font-medium">{data.label}</p>
+								</div>
+								<div className="flex shrink-0 flex-row items-center gap-1.5">
+									<span className="text-xs text-muted-foreground tabular-nums">
+										{responseTime != null ? `${responseTime}ms` : "—"}
+									</span>
+									<UptimeBadge percent={data.uptime.total} />
+								</div>
+							</div>
+							<StatusTimeline states={data.states} limit={40} className="w-full" />
+						</Card>
+					</Link>
+				</ContextMenuTrigger>
+				<ContextMenuContent>
+					<ContextMenuItem
+						onSelect={() => {
+							setEditOpen(true);
+						}}
+					>
+						<Pencil />
+						{t("sidebar.editMonitor")}
+					</ContextMenuItem>
+					<ContextMenuSeparator />
+					<ContextMenuItem
+						variant="destructive"
+						onSelect={() => {
+							void deleteMonitor({ id: monitorId, label: data.label });
+						}}
+					>
+						<Trash2 />
+						{t("sidebar.deleteMonitor")}
+					</ContextMenuItem>
+				</ContextMenuContent>
+			</ContextMenu>
+
+			<EditMonitorDialog monitorId={monitorId} open={editOpen} onOpenChange={setEditOpen} />
+		</>
 	);
 }

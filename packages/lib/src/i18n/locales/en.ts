@@ -4,6 +4,8 @@ export const en = {
 		back: "Back",
 		create: "Create",
 		creating: "Creating...",
+		save: "Save",
+		saving: "Saving...",
 		key: "Key",
 		value: "Value",
 		addRow: "Add row",
@@ -43,6 +45,8 @@ export const en = {
 		noMonitors: "No monitors",
 		none: "None",
 		newMonitor: "New monitor",
+		editMonitor: "Edit monitor",
+		deleteMonitor: "Delete monitor",
 	},
 	monitor: {
 		create: {
@@ -56,13 +60,33 @@ export const en = {
 			intervalDescription: "How often the monitor runs. Must be a multiple of 30.",
 			group: "Group",
 			groupNone: "No group",
+			typePlaceholder: "Select a type",
 			validation: {
 				labelRequired: "Label is required",
+				typeRequired: "Type is required",
 				intervalMin: "Interval must be at least 30 seconds",
 				intervalMultiple: "Interval must be a multiple of 30 seconds",
 			},
 		},
+		delete: {
+			title: "Delete monitor",
+			description:
+				"This will permanently delete {label} and all of its status history. Type the monitor label below to confirm.",
+			confirm: "Delete",
+			failed: "Failed to delete monitor",
+		},
+		edit: {
+			title: "Edit monitor",
+			configure: "Configure {type}",
+			step1Description: "Update the monitor basics.",
+			step2Description: "Update the type-specific settings.",
+			typeLocked: "Group monitors cannot be changed to another type.",
+		},
 		form: {
+			basics: "Basics",
+			configuration: "Configuration",
+			selectTypeHint: "Select a monitor type to configure type-specific settings.",
+			noConfigNeeded: "No additional configuration is required for this monitor type.",
 			orConfigureIndividually: "Or configure individually",
 		},
 		categories: {
@@ -180,6 +204,8 @@ export const en = {
 			passwordRequired: "Password is required when no connection URI is provided",
 			databaseRequired: "Database is required when no connection URI is provided",
 			invalidData: "Invalid data for {type} monitor",
+			typeChangeNotAllowed: "Group monitors cannot be changed to another type",
+			groupHasMonitors: "Cannot delete a group that still contains monitors",
 			notFound: "Monitor not found",
 			unauthorized: "Unauthorized",
 			invalidUrl: "Invalid URL",
@@ -195,6 +221,8 @@ export const en = {
 		maintenance: "Maintenance",
 	},
 	monitorDetail: {
+		edit: "Edit",
+		delete: "Delete",
 		now: "now",
 		hour1: "1h",
 		checkedEvery: "Checked every {seconds} seconds",

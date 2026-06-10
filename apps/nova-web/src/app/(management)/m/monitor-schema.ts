@@ -241,6 +241,25 @@ export function monitorDataToFormValues(
 	return { ...initial, ...data };
 }
 
+export function switchMonitorTypeData(
+	fromType: MonitorType | null,
+	toType: MonitorType,
+	currentData: Record<string, unknown>,
+): Record<string, unknown> {
+	const next = getInitialMonitorData(toType);
+	if (!fromType) return next;
+
+	const fromKeys = new Set(getMonitorFields(fromType, (key) => key).map((field) => field.key));
+
+	for (const field of getMonitorFields(toType, (key) => key)) {
+		if (fromKeys.has(field.key) && field.key in currentData) {
+			next[field.key] = currentData[field.key];
+		}
+	}
+
+	return next;
+}
+
 export function getInitialMonitorData(type: MonitorType): Record<string, unknown> {
 	const values: Record<string, unknown> = {};
 	for (const field of getMonitorFields(type, (key) => key)) {

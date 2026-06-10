@@ -4,7 +4,7 @@
  */
 import type { NextConfig } from "next";
 import "@novastatus/env";
-import "@novastatus/print";
+import "@starlightv-org/print";
 
 const config: NextConfig = {
 	output: "standalone",

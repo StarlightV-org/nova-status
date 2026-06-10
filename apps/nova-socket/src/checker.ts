@@ -24,56 +24,61 @@ const pendingResults: PendingResult[] = [];
 let emitTimer: NodeJS.Timeout | null = null;
 
 export default async function checker() {
-	const now = new Date();
-	const nowSeconds = now.getMinutes() * 60 + now.getSeconds();
+	try {
+		const now = new Date();
+		const nowSeconds = now.getMinutes() * 60 + now.getSeconds();
 
-	// Get all monitors where interval is a multiple of 30 and current time is a multiple of their interval
-	const allMonitors = await db.query.monitors.findMany({
-		where: (monitor, { not, eq }) => not(eq(monitor.type, "GROUP")),
-	});
+		// Get all monitors where interval is a multiple of 30 and current time is a multiple of their interval
+		const allMonitors = await db.query.monitors.findMany({
+			where: (monitor, { not, eq }) => not(eq(monitor.type, "GROUP")),
+		});
 
-	const monitorsToExecute = allMonitors.filter((monitor) => {
-		// Only support intervals that are multiples of 30
-		if (monitor.interval % 30 !== 0) return false;
+		const monitorsToExecute = allMonitors.filter((monitor) => {
+			// Only support intervals that are multiples of 30
+			if (monitor.interval % 30 !== 0) return false;
 
-		// Check if this monitor should run now
-		// A monitor with interval X should run when nowSeconds % X === 0
-		return nowSeconds % monitor.interval === 0;
-	});
+			// Check if this monitor should run now
+			// A monitor with interval X should run when nowSeconds % X === 0
+			return nowSeconds % monitor.interval === 0;
+		});
 
-	if (monitorsToExecute.length === 0) return;
+		if (monitorsToExecute.length === 0) return;
 
-	Print.Debug(`Executing ${monitorsToExecute.length} monitors`);
+		Print.Debug(`Executing ${monitorsToExecute.length} monitors`);
 
-	// Schedule emit at :15 or :45
-	scheduleEmit();
+		// Schedule emit at :15 or :45
+		scheduleEmit();
 
-	// Create promises for all monitors (fresh row loaded per monitor before check)
-	const promises = monitorsToExecute.map((monitor) => executeMonitorWithTimeout(monitor.id));
+		// Create promises for all monitors (fresh row loaded per monitor before check)
+		const promises = monitorsToExecute.map((monitor) => executeMonitorWithTimeout(monitor.id));
 
-	// Execute all monitors concurrently and wait for all to settle
-	const results = await Promise.allSettled(promises);
+		// Execute all monitors concurrently and wait for all to settle
+		const results = await Promise.allSettled(promises);
 
-	// Collect results
-	results.forEach((result, index) => {
-		const monitorId = monitorsToExecute[index]!.id;
-		if (result.status === "fulfilled") {
-			if (result.value === null) return;
-			pendingResults.push({
-				monitorId,
-				...result.value,
-			});
-		} else {
-			const label = monitorsToExecute[index]!.label;
-			Print.Error(`Monitor ${monitorId} (${label}) failed:`, result.reason);
-			pendingResults.push({
-				monitorId,
-				status: "down",
-				responseTime: CHECK_TIMEOUT_MS,
-				message: result.reason instanceof Error ? result.reason.message : "Check failed",
-			});
-		}
-	});
+		// Collect results
+		results.forEach((result, index) => {
+			const monitorId = monitorsToExecute[index]!.id;
+			if (result.status === "fulfilled") {
+				if (result.value === null) return;
+				pendingResults.push({
+					monitorId,
+					...result.value,
+				});
+			} else {
+				const label = monitorsToExecute[index]!.label;
+				Print.Error(`Monitor ${monitorId} (${label}) failed:`, result.reason);
+				pendingResults.push({
+					monitorId,
+					status: "down",
+					responseTime: CHECK_TIMEOUT_MS,
+					message: result.reason instanceof Error ? result.reason.message : "Check failed",
+				});
+			}
+		});
+	} catch (error) {
+		Print.Error("Checker cycle failed:", error);
+		throw error;
+	}
 }
 
 function scheduleEmit() {
@@ -97,36 +102,40 @@ const DEFAULT_UPTIME: MonitorUptime = {
 async function emitAllResults() {
 	if (pendingResults.length === 0) return;
 
-	const timestamp = new Date().toISOString();
-	const monitorIds = [...new Set(pendingResults.map((result) => result.monitorId))];
-	const uptimeByMonitorId = await uptimeForMonitors(db, monitorIds);
+	try {
+		const timestamp = new Date().toISOString();
+		const monitorIds = [...new Set(pendingResults.map((result) => result.monitorId))];
+		const uptimeByMonitorId = await uptimeForMonitors(db, monitorIds);
 
-	const enrichedResults: MonitorStatusSocketPayload[] = pendingResults.map((result) => ({
-		monitorId: result.monitorId,
-		status: result.status === "degraded" ? "down" : result.status,
-		responseTime: result.responseTime,
-		message: result.message,
-		timestamp,
-		uptime: uptimeByMonitorId.get(result.monitorId) ?? DEFAULT_UPTIME,
-	}));
+		const enrichedResults: MonitorStatusSocketPayload[] = pendingResults.map((result) => ({
+			monitorId: result.monitorId,
+			status: result.status === "degraded" ? "down" : result.status,
+			responseTime: result.responseTime,
+			message: result.message,
+			timestamp,
+			uptime: uptimeByMonitorId.get(result.monitorId) ?? DEFAULT_UPTIME,
+		}));
 
-	if (io) {
-		for (const payload of enrichedResults) {
-			io.to(`monitor:${payload.monitorId}`).emit("monitor:status", payload);
+		if (io) {
+			for (const payload of enrichedResults) {
+				io.to(`monitor:${payload.monitorId}`).emit("monitor:status", payload);
+			}
+
+			io.to("monitors:all").emit("monitors:batch", {
+				results: enrichedResults,
+				timestamp,
+				count: enrichedResults.length,
+			});
+
+			io.to("monitors:all").emit("monitors:all", enrichedResults);
 		}
 
-		io.to("monitors:all").emit("monitors:batch", {
-			results: enrichedResults,
-			timestamp,
-			count: enrichedResults.length,
-		});
-
-		io.to("monitors:all").emit("monitors:all", enrichedResults);
+		Print.Debug(`Emitted batch of ${enrichedResults.length} monitor results`);
+	} catch (error) {
+		Print.Error("Failed to emit monitor results:", error);
+	} finally {
+		pendingResults.length = 0;
 	}
-
-	Print.Debug(`Emitted batch of ${enrichedResults.length} monitor results`);
-
-	pendingResults.length = 0;
 }
 
 async function getMonitorForExecution(monitorId: string): Promise<MonitorDB | null> {
@@ -147,17 +156,22 @@ async function executeMonitorWithTimeout(monitorId: string): Promise<MonitorChec
 	const monitor = await getMonitorForExecution(monitorId);
 	if (!monitor) return null;
 
+	let timedOut = false;
+
 	return new Promise((resolve, reject) => {
 		const timeoutId = setTimeout(() => {
+			timedOut = true;
 			reject(new Error("Check timeout - exceeded 10 seconds"));
 		}, CHECK_TIMEOUT_MS);
 
 		executeMonitor(monitor)
 			.then((result) => {
+				if (timedOut) return;
 				clearTimeout(timeoutId);
 				resolve(result);
 			})
 			.catch((error) => {
+				if (timedOut) return;
 				clearTimeout(timeoutId);
 				reject(error);
 			});
@@ -330,7 +344,7 @@ async function checkHTTP(data: {
 		const accepted = isHttpStatusAccepted(response.status, data.acceptedStatusCodes);
 
 		return {
-			status: accepted ? "up" : "down",
+			status: accepted ? ("up" as const) : ("down" as const),
 			responseTime,
 			message: accepted ? undefined : `HTTP ${response.status}: ${response.statusText}`,
 		};

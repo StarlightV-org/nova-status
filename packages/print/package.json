@@ -5,8 +5,8 @@
 	"type": "module",
 	"exports": {
 		".": {
-			"types": "./src/print.ts",
-			"default": "./src/print.ts"
+			"types": "./src/index.ts",
+			"default": "./src/index.ts"
 		}
 	},
 	"scripts": {

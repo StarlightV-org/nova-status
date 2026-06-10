@@ -5,6 +5,7 @@ import chalk from "chalk";
 import { formatDate } from "date-fns";
 import type { TRPCError } from "@trpc/server";
 
+
 /** Which `console.*` to use (affects stdout vs stderr in Node). */
 export type PrintConsoleMethod = "log" | "error" | "warn" | "info" | "debug";
 
@@ -15,6 +16,7 @@ export interface PrintOptions {
 }
 
 type PrintLogType =
+  | "EXTEND"
 	| "LOG"
 	| "INFO"
 	| "IMPORTANT"
@@ -101,7 +103,13 @@ type PrintFunction = {
 		},
 	) => void;
 	APIError: (...val: any[]) => void;
-	Mute: (...val: any[]) => void;
+  Mute: (...val: any[]) => void;
+  Extend: (data: Partial<{
+    label: string;
+    labelColor: string;
+    valueColor: string;
+    method: PrintConsoleMethod;
+	}>) => void;
 };
 
 // Declare global Print function
@@ -224,7 +232,7 @@ const createPrint = (() => {
 	const cReset = "";
 
 	const browserSlv = {
-		fmtPrefix: `%cSLV%c `,
+		fmtPrefix: `%cNOVA%c `,
 		styles: [`color: ${stampColor}; font-weight: 800;`, cReset] as const,
 	};
 
@@ -806,6 +814,25 @@ const createPrint = (() => {
 		const v = [...val];
 		const { depth, method, args } = popPrintOptions(v);
 		printDevLabeledLine(method, { color: "#ff5555", text: "[MUTE]" }, args, depth);
+  };
+
+	printFunc.Extend = (data: Partial<{
+		label: string;
+		labelColor: string;
+		valueColor: string;
+		method: PrintConsoleMethod;
+	}>) => {
+		const label = data.label ?? "";
+		const labelColor = data.labelColor ?? "#5050ff";
+		const valueColor = data.valueColor ?? "#a6ffff";
+		const method = data.method ?? "info";
+		const color = labelColor;
+		const labelText = label ? `${label} ` : "";
+		const valueColorReset = valueColor ? `; color: ${valueColor}` : "";
+		const extendedPrint = (val: any[]) => {
+			printStyledLine(method, formatPrintTime(), chalk.hex(color)(labelText), ...val.map((v) => chalk.hex(valueColor)(v.toString())).concat(valueColorReset));
+		};
+		return extendedPrint;
 	};
 
 	return printFunc;

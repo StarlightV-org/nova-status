@@ -1,5 +1,5 @@
 import Fastify, { type FastifyReply, type FastifyRequest } from "fastify";
-import "@novastatus/print";
+import "@starlightv-org/print";
 import { ENV } from "@novastatus/env";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";

@@ -10,6 +10,12 @@ import { cn } from "~/lib/utils"
 const THEMES = { light: "", dark: ".dark" } as const
 
 const INITIAL_DIMENSION = { width: 320, height: 200 } as const
+
+// Runs synchronously before paint on the client (so the chart can be sized to its
+// container without a visible resize jump) while falling back to a no-op effect
+// during SSR to avoid the useLayoutEffect server warning.
+const useIsomorphicLayoutEffect =
+  typeof window !== "undefined" ? React.useLayoutEffect : React.useEffect
 type TooltipNameType = number | string
 
 export type ChartConfig = Record<
@@ -59,9 +65,31 @@ function ChartContainer({
   const uniqueId = React.useId()
   const chartId = `chart-${id ?? uniqueId.replace(/:/g, "")}`
 
+  const containerRef = React.useRef<HTMLDivElement>(null)
+  const [size, setSize] = React.useState(initialDimension)
+
+  useIsomorphicLayoutEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+
+    const update = () => {
+      const width = el.clientWidth
+      const height = el.clientHeight
+      setSize((prev) =>
+        prev.width === width && prev.height === height ? prev : { width, height }
+      )
+    }
+
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
   return (
     <ChartContext.Provider value={{ config }}>
       <div
+        ref={containerRef}
         data-slot="chart"
         data-chart={chartId}
         className={cn(
@@ -71,11 +99,12 @@ function ChartContainer({
         {...props}
       >
         <ChartStyle id={chartId} config={config} />
-        <RechartsPrimitive.ResponsiveContainer
-          initialDimension={initialDimension}
-        >
-          {children}
-        </RechartsPrimitive.ResponsiveContainer>
+        {React.isValidElement(children)
+          ? React.cloneElement(
+              children as React.ReactElement<{ width?: number; height?: number }>,
+              { width: size.width, height: size.height }
+            )
+          : children}
       </div>
     </ChartContext.Provider>
   )

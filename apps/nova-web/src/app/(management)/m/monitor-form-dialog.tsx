@@ -43,6 +43,7 @@ import {
 	getInitialMonitorData,
 	hasMonitorTypeConfig,
 	monitorDataToFormValues,
+	switchMonitorTypeData,
 	validateMonitorData,
 } from "./monitor-schema";
 
@@ -161,8 +162,8 @@ export function MonitorFormDialog({ mode, groups, monitor, open, onOpenChange, c
 	}
 
 	function handleTypeChange(nextType: MonitorType) {
+		setData((prev) => switchMonitorTypeData(selectedType, nextType, prev));
 		setType(nextType);
-		setData(getInitialMonitorData(nextType));
 		setDataErrors({});
 		setCommonErrors((prev) => ({ ...prev, type: undefined }));
 	}

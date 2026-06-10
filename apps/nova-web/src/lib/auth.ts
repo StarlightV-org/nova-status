@@ -1,4 +1,5 @@
-import "@novastatus/print";
+import "@starlightv-org/print";
+Print.Setup({ prefix: "NOVA" });
 
 import { betterAuth, type SessionType } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";

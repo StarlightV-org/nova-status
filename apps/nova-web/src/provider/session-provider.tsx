@@ -1,7 +1,8 @@
 "use client";
 import type { SessionType } from "better-auth";
 import { createContext, useContext, useEffect, type ReactNode } from "react";
-import "@novastatus/print";
+import "@starlightv-org/print";
+Print.Setup({ prefix: "NOVA" });
 
 const SessionContext = createContext<SessionType>({} as SessionType);
 

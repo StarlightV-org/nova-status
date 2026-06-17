@@ -4,6 +4,7 @@ import { uptimeForMonitor, uptimeForMonitors } from "@novastatus/lib/uptime.ts";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
+import { subSeconds } from "date-fns";
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 
@@ -34,7 +35,7 @@ export const monitorRouter = createTRPCRouter({
 					last1day: 100,
 					last7days: 100,
 				},
-				status: monitor.status.slice(0, 45),
+				status: monitor.status.slice(0, 100),
 			}));
 		}),
 

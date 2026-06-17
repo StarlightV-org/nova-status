@@ -10,7 +10,8 @@ import {
 	type SidebarMonitor,
 } from "~/lib/monitor-layout";
 import type { RouterOutputs } from "~/trpc/react";
-import { useSocket } from "./web-socket";
+import { useMonitorSocket } from "./web-socket";
+import { subSeconds } from "date-fns";
 
 export type { MonitorState, SidebarGroup, SidebarMonitor };
 export { buildMonitorLayoutFromGet };
@@ -53,7 +54,7 @@ function applyMonitorUpdates(prev: MonitorState, updates: MonitorStatusSocketPay
 			status: update.status,
 			responseTime: update.responseTime,
 			message: update.message ?? null,
-			checkedAt: new Date(update.timestamp),
+			checkedAt: subSeconds(new Date(update.timestamp), 15),
 		};
 
 		next[update.monitorId] = {
@@ -81,7 +82,7 @@ export function MonitorStateProvider({
 	const [state, setState] = useState<MonitorState>(initialState);
 	const [groups, setGroups] = useState<SidebarGroup[]>(initialGroups);
 	const [sidebarMonitors, setSidebarMonitors] = useState<SidebarMonitor[]>(initialSidebarMonitors);
-	const socket = useSocket();
+	const socket = useMonitorSocket();
 
 	const replaceFromMonitors = useCallback((monitors: MonitorGetResult) => {
 		const layout = buildMonitorLayoutFromGet(monitors);
@@ -93,21 +94,6 @@ export function MonitorStateProvider({
 	useEffect(() => {
 		if (!socket) return;
 
-		const subscribeAll = () => {
-			socket.emit("monitors:subscribe-all", (success: boolean) => {
-				if (success) {
-					Print.Success("monitors:subscribe-all", "success");
-				} else {
-					Print.Error("monitors:subscribe-all", "failure");
-				}
-			});
-		};
-
-		const onConnect = () => {
-			Print.Debug("monitor-state", "socket connected, (re)subscribing to monitors:all");
-			subscribeAll();
-		};
-
 		const onDisconnect = (reason: string) => {
 			Print.Error("monitor-state", `socket disconnected: ${reason}`);
 		};
@@ -117,23 +103,12 @@ export function MonitorStateProvider({
 			setState((prev) => applyMonitorUpdates(prev, updates));
 		};
 
-		socket.on("connect", onConnect);
 		socket.on("disconnect", onDisconnect);
 		socket.on("monitors:all", onMonitorsAll);
 
-		if (socket.connected) subscribeAll();
-
 		return () => {
-			socket.off("connect", onConnect);
 			socket.off("disconnect", onDisconnect);
 			socket.off("monitors:all", onMonitorsAll);
-			socket.emit("monitors:unsubscribe-all", (success: boolean) => {
-				if (success) {
-					Print.Success("monitors:unsubscribe-all", "success");
-				} else {
-					Print.Error("monitors:unsubscribe-all", "failure");
-				}
-			});
 		};
 	}, [socket]);
 

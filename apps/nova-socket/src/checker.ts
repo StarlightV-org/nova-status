@@ -3,7 +3,7 @@ import { monitorStatus, type MonitorDB } from "@novastatus/db/schema";
 import type { MonitorStatusSocketPayload } from "@novastatus/lib/monitorSocket.ts";
 import { MONITOR_SCHEMA, type MonitorType } from "@novastatus/lib/monitorTypes.ts";
 import { type MonitorUptime, uptimeForMonitors } from "@novastatus/lib/uptime.ts";
-import { io } from "~/socket";
+import { getMonitorNamespace } from "~/io/monito-space";
 import net from "node:net";
 import * as dns from "node:dns/promises";
 import { spawn } from "node:child_process";
@@ -116,18 +116,15 @@ async function emitAllResults() {
 			uptime: uptimeByMonitorId.get(result.monitorId) ?? DEFAULT_UPTIME,
 		}));
 
-		if (io) {
-			for (const payload of enrichedResults) {
-				io.to(`monitor:${payload.monitorId}`).emit("monitor:status", payload);
-			}
-
-			io.to("monitors:all").emit("monitors:batch", {
+		const monitorNs = getMonitorNamespace();
+		if (monitorNs) {
+			monitorNs.emit("monitors:batch", {
 				results: enrichedResults,
 				timestamp,
 				count: enrichedResults.length,
 			});
 
-			io.to("monitors:all").emit("monitors:all", enrichedResults);
+			monitorNs.emit("monitors:all", enrichedResults);
 		}
 
 		Print.Debug(`Emitted batch of ${enrichedResults.length} monitor results`);

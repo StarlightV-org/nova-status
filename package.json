@@ -26,7 +26,7 @@
 		"@novastatus/db": "workspace:*",
 		"@novastatus/env": "workspace:*",
 		"@novastatus/lib": "workspace:*",
-		"@starlightv-org/print": "^0.1.2",
+		"@starlightv-org/print": "0.1.3",
 		"@t3-oss/env-core": "^0.13.11",
 		"@t3-oss/env-nextjs": "^0.13.11",
 		"@tanstack/react-query": "^5.101.0",

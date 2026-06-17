@@ -12,6 +12,7 @@ import { getAuth } from "~/lib/auth";
 import { LocaleProvider } from "~/provider/locale-provider";
 import { SessionProvider } from "~/provider/session-provider";
 import { ConfirmModalProvider } from "~/components/ui/confirm-modal";
+import { Toaster } from "~/components/ui/sonner";
 
 const nunitoSans = Nunito_Sans({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -45,7 +46,10 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
 						<TRPCReactProvider>
 							<HydrateClient>
 								<ConfirmModalProvider>
-									<TooltipProvider disableHoverableContent>{children}</TooltipProvider>
+									<TooltipProvider disableHoverableContent>
+										<Toaster />
+										{children}
+									</TooltipProvider>
 								</ConfirmModalProvider>
 							</HydrateClient>
 						</TRPCReactProvider>

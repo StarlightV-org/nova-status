@@ -10,3 +10,16 @@ export type MonitorStatusSocketPayload = {
 	timestamp: string;
 	uptime: MonitorUptime;
 };
+
+export type MonitorBatchPayload = {
+	results: MonitorStatusSocketPayload[];
+	timestamp: string;
+	count: number;
+};
+
+export type MonitorServerToClientEvents = {
+	"monitors:all": (updates: MonitorStatusSocketPayload[]) => void;
+	"monitors:batch": (batch: MonitorBatchPayload) => void;
+};
+
+export type MonitorClientToServerEvents = Record<string, never>;

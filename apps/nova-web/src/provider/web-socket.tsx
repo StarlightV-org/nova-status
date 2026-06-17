@@ -1,54 +1,93 @@
 "use client";
-import { createContext, useContext, useEffect, useState } from "react";
-import { io } from "socket.io-client";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { Manager, type Socket } from "socket.io-client";
+import { toast } from "sonner";
 
-const SocketContext = createContext<ReturnType<typeof io> | null>(null);
+const SocketManagerContext = createContext<Manager | null>(null);
+const MonitorSocketContext = createContext<Socket | null>(null);
 
-export function useSocket() {
-	const socket = useContext(SocketContext);
+export function useSocketManager() {
+	return useContext(SocketManagerContext);
+}
 
-	return socket;
+export function useMonitorSocket() {
+	return useContext(MonitorSocketContext);
 }
 
 export function SocketProvider({ children }: { children: React.ReactNode }) {
-	const [socket, setSocket] = useState<ReturnType<typeof io> | null>(null);
+	const [manager, setManager] = useState<Manager | null>(null);
+	const [monitorSocket, setMonitorSocket] = useState<Socket | null>(null);
+	const wasConnected = useRef(false);
 
 	useEffect(() => {
-		const socketInstance = io({
+		const managerInstance = new Manager({
 			path: "/socket.io",
 			addTrailingSlash: false,
-			autoConnect: true,
+			autoConnect: false,
 			reconnection: true,
 			reconnectionAttempts: Infinity,
 			reconnectionDelay: 1000,
 			withCredentials: true,
 		});
 
-		setSocket(socketInstance);
+		const monitor = managerInstance.socket("/monitor");
+
+		setManager(managerInstance);
+		setMonitorSocket(monitor);
 
 		const onConnect = () => {
-			Print.StartUp("Connected to socket");
+			wasConnected.current = true;
+			Print.StartUp("Connected to monitor socket");
+			if (wasConnected.current) {
+				toast.success("Connected to socket", {
+					id: "web-socket",
+					duration: 5000,
+					position: "top-center",
+				});
+			}
 		};
 
 		const onDisconnect = (reason: string) => {
 			Print.Error("web-socket", `disconnected: ${reason}`);
+			toast.error(`Disconnected: ${reason}`, {
+				id: "web-socket",
+				duration: Number.POSITIVE_INFINITY,
+				position: "top-center",
+			});
 		};
 
 		const onConnectError = (error: Error) => {
 			Print.Error("web-socket", `connect_error: ${error.message}`);
+			toast.error(`Disconnected: ${error.message}`, {
+				id: "web-socket",
+				duration: Number.POSITIVE_INFINITY,
+				position: "top-center",
+			});
 		};
 
-		socketInstance.on("connect", onConnect);
-		socketInstance.on("disconnect", onDisconnect);
-		socketInstance.on("connect_error", onConnectError);
+		monitor.onAny((event, ...args) => {
+			Print.Info(event, ...args);
+		});
+
+		monitor.on("connect", onConnect);
+		monitor.on("disconnect", onDisconnect);
+		monitor.on("connect_error", onConnectError);
+
+		monitor.connect();
 
 		return () => {
-			socketInstance.off("connect", onConnect);
-			socketInstance.off("disconnect", onDisconnect);
-			socketInstance.off("connect_error", onConnectError);
-			socketInstance.close();
+			monitor.off("connect", onConnect);
+			monitor.off("disconnect", onDisconnect);
+			monitor.off("connect_error", onConnectError);
+			monitor.offAny();
+			monitor.disconnect();
+			managerInstance.removeAllListeners();
 		};
 	}, []);
 
-	return <SocketContext.Provider value={socket}>{children}</SocketContext.Provider>;
+	return (
+		<SocketManagerContext.Provider value={manager}>
+			<MonitorSocketContext.Provider value={monitorSocket}>{children}</MonitorSocketContext.Provider>
+		</SocketManagerContext.Provider>
+	);
 }

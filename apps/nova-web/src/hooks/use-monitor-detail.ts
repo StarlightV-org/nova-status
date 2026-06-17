@@ -4,7 +4,7 @@ import type { MonitorStatusDB } from "@novastatus/db/schema";
 import type { MonitorStatusSocketPayload } from "@novastatus/lib/monitorSocket.ts";
 import { useEffect, useState } from "react";
 
-import { useSocket } from "~/provider/web-socket";
+import { useMonitorSocket } from "~/provider/web-socket";
 import type { RouterOutputs } from "~/trpc/react";
 
 type MonitorDetailData = RouterOutputs["monitor"]["getById"];
@@ -28,7 +28,7 @@ function applyStatusUpdate(data: MonitorDetailData, update: MonitorStatusSocketP
 
 export function useMonitorDetail(monitorId: string, initialData: MonitorDetailData) {
 	const [data, setData] = useState(initialData);
-	const socket = useSocket();
+	const socket = useMonitorSocket();
 
 	useEffect(() => {
 		setData(initialData);
@@ -37,42 +37,18 @@ export function useMonitorDetail(monitorId: string, initialData: MonitorDetailDa
 	useEffect(() => {
 		if (!socket) return;
 
-		const subscribe = () => {
-			socket.emit("monitor:subscribe", monitorId, (success: boolean) => {
-				if (success) {
-					Print.Success("monitor:subscribe", monitorId);
-				} else {
-					Print.Error("monitor:subscribe", monitorId);
-				}
-			});
-		};
+		const onMonitorsAll = (updates: MonitorStatusSocketPayload[]) => {
+			const update = updates.find((entry) => entry.monitorId === monitorId);
+			if (!update) return;
 
-		const onConnect = () => {
-			Print.Debug("use-monitor-detail", `socket connected, (re)subscribing to monitor:${monitorId}`);
-			subscribe();
-		};
-
-		const onStatus = (update: MonitorStatusSocketPayload) => {
-			if (update.monitorId !== monitorId) return;
-			Print.Debug("monitor:status", update);
+			Print.Debug("monitors:all", update);
 			setData((prev) => applyStatusUpdate(prev, update));
 		};
 
-		socket.on("connect", onConnect);
-		socket.on("monitor:status", onStatus);
-
-		if (socket.connected) subscribe();
+		socket.on("monitors:all", onMonitorsAll);
 
 		return () => {
-			socket.off("connect", onConnect);
-			socket.off("monitor:status", onStatus);
-			socket.emit("monitor:unsubscribe", monitorId, (success: boolean) => {
-				if (success) {
-					Print.Success("monitor:unsubscribe", monitorId);
-				} else {
-					Print.Error("monitor:unsubscribe", monitorId);
-				}
-			});
+			socket.off("monitors:all", onMonitorsAll);
 		};
 	}, [socket, monitorId]);
 

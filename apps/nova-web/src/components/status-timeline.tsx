@@ -72,7 +72,7 @@ export function StatusTimeline({
 	return (
 		<>
 			<div
-				className={cn("min-w-0 overflow-hidden", className)}
+				className={cn("min-w-0 overflow-hidden px-1", className)}
 				style={{ paddingBlock: PAD_Y }}
 				role="img"
 				aria-label={`Monitor status history, ${beats.length} checks`}

@@ -1,10 +1,10 @@
 import { monitors } from "@novastatus/db/schema";
+import { getPendingSocketEmitCutoff } from "@novastatus/lib/checkTiming.ts";
 import { MONITOR_SCHEMA, MONITOR_TYPES_LIST } from "@novastatus/lib/monitorTypes.ts";
 import { uptimeForMonitor, uptimeForMonitors } from "@novastatus/lib/uptime.ts";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { subSeconds } from "date-fns";
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 
@@ -15,10 +15,16 @@ export const monitorRouter = createTRPCRouter({
 	get: protectedProcedure
 		// .input(z.object({  }))
 		.query(async ({ ctx }) => {
+			const pendingCutoff = getPendingSocketEmitCutoff();
+
 			const monitors = await ctx.db.query.monitors.findMany({
 				with: {
 					status: {
+						...(pendingCutoff
+							? { where: (status, { lt: lessThan }) => lessThan(status.checkedAt, pendingCutoff) }
+							: {}),
 						orderBy: (status, { desc }) => [desc(status.checkedAt)],
+						limit: 100,
 					},
 				},
 			});
@@ -26,6 +32,7 @@ export const monitorRouter = createTRPCRouter({
 			const uptimeByMonitorId = await uptimeForMonitors(
 				ctx.db,
 				monitors.map((monitor) => monitor.id),
+				pendingCutoff ?? undefined,
 			);
 
 			return monitors.map((monitor) => ({
@@ -35,18 +42,23 @@ export const monitorRouter = createTRPCRouter({
 					last1day: 100,
 					last7days: 100,
 				},
-				status: monitor.status.slice(0, 100),
+				status: monitor.status,
 			}));
 		}),
 
 	getById: protectedProcedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {
 		const historySince = new Date(Date.now() - DAY_MS);
+		const pendingCutoff = getPendingSocketEmitCutoff();
 
 		const monitor = await ctx.db.query.monitors.findFirst({
 			where: (row, { eq: equals }) => equals(row.id, input.id),
 			with: {
 				status: {
-					where: (status, { gte }) => gte(status.checkedAt, historySince),
+					where: (status, { gte, lt: lessThan, and }) =>
+						and(
+							gte(status.checkedAt, historySince),
+							pendingCutoff ? lessThan(status.checkedAt, pendingCutoff) : undefined,
+						),
 					orderBy: (status, { desc }) => [desc(status.checkedAt)],
 					limit: 500,
 				},
@@ -57,7 +69,7 @@ export const monitorRouter = createTRPCRouter({
 			throw new TRPCError({ code: "NOT_FOUND", message: ctx.t("monitor.validation.notFound") });
 		}
 
-		const uptime = await uptimeForMonitor(ctx.db, monitor.id);
+		const uptime = await uptimeForMonitor(ctx.db, monitor.id, pendingCutoff ?? undefined);
 
 		return {
 			id: monitor.id,

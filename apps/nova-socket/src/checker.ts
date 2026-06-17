@@ -2,6 +2,7 @@ import { db } from "@novastatus/db";
 import { monitorStatus, type MonitorDB } from "@novastatus/db/schema";
 import type { MonitorStatusSocketPayload } from "@novastatus/lib/monitorSocket.ts";
 import { MONITOR_SCHEMA, type MonitorType } from "@novastatus/lib/monitorTypes.ts";
+import { SOCKET_EMIT_OFFSET_MS } from "@novastatus/lib/checkTiming.ts";
 import { type MonitorUptime, uptimeForMonitors } from "@novastatus/lib/uptime.ts";
 import { getMonitorNamespace } from "~/io/monito-space";
 import net from "node:net";
@@ -10,7 +11,6 @@ import { spawn } from "node:child_process";
 import type { Resolver } from "node:dns";
 
 const CHECK_TIMEOUT_MS = 10000; // 10 seconds max for each check
-const EMIT_OFFSET_MS = 15000; // Emit at :15 and :45 (15 seconds after check starts)
 
 // Store pending results to emit at the right time
 interface PendingResult {
@@ -90,7 +90,7 @@ function scheduleEmit() {
 	// Schedule emit at :15 or :45
 	emitTimer = setTimeout(() => {
 		void emitAllResults();
-	}, EMIT_OFFSET_MS);
+	}, SOCKET_EMIT_OFFSET_MS);
 }
 
 const DEFAULT_UPTIME: MonitorUptime = {
@@ -118,12 +118,6 @@ async function emitAllResults() {
 
 		const monitorNs = getMonitorNamespace();
 		if (monitorNs) {
-			monitorNs.emit("monitors:batch", {
-				results: enrichedResults,
-				timestamp,
-				count: enrichedResults.length,
-			});
-
 			monitorNs.emit("monitors:all", enrichedResults);
 		}
 
